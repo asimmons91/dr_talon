@@ -54,6 +54,7 @@ module DrTalon
 
       def create_game
         (layout == :full) ? copy_stock_game : create_library
+        template "bare/main_tests.rb.tt", "mygame/tests/main_tests.rb" if template_name == "bare"
         create_talon_game if talon?
       end
 
@@ -73,8 +74,10 @@ module DrTalon
         return unless File.file?(file)
 
         values = {
-          "devid" => options[:dev_id] || config.dev_id,
-          "devtitle" => options[:dev_title] || config.dev_title,
+          "devid" => options[:dev_id] || config.dev_id ||
+            ask_in_terminal("Your itch.io username, for game_metadata.txt (blank to set it later):"),
+          "devtitle" => options[:dev_title] || config.dev_title ||
+            ask_in_terminal("Your name as shown in builds (blank to set it later):"),
           "gameid" => name.downcase.tr("_", "-"),
           "gametitle" => title,
           "version" => "0.1",
@@ -261,6 +264,15 @@ module DrTalon
         template "lib/lib/version.rb.tt", "lib/#{file_name}/version.rb"
         template "lib/test/test_helper.rb.tt", "test/test_helper.rb"
         template "lib/test/tests.rb.tt", "test/#{file_name}_tests.rb"
+      end
+
+      # dragonruby-publish needs devid and devtitle, so ask for them in a
+      # terminal; scripts and CI aren't prompted.
+      def ask_in_terminal(question)
+        return nil unless $stdin.tty?
+
+        answer = ask(question).to_s.strip
+        answer.empty? ? nil : answer
       end
 
       def bundle_in_destination

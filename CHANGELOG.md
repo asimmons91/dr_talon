@@ -1,29 +1,55 @@
 ## [Unreleased]
 
-- `talon` executable with `version` (`-v`, `--version`)
-- `DrTalon::Paths` for XDG / macOS / Windows data, cache and config locations (`DR_TALON_HOME` override)
-- `talon engine import|list|which|uninstall`: a global cache of DragonRuby engines, imported from the downloaded zip or an extracted directory
-- `talon engine use [ENGINE]`: pin an engine in `.dragonruby-version` and copy it into the project (reflinks on btrfs/XFS), tracking installed files in `.talon/engine.yml` so switching versions removes exactly those files
-- `talon engine current`; `which` and `list` follow the project's pin
-- `talon doctor`: checks the pin, the cached and installed engine, and `game_metadata.txt` placeholders
-- `talon new PATH`: create a game (`bare` template: DragonRuby's layout, starting from the cached engine's `mygame/`) or a library (`--lib`: game-only layout with `lib/`, `app/main.rb` and a DragonRuby test). It pins and installs an engine, fills in `game_metadata.txt`, adds RuboCop/Solargraph tooling, and runs `git init` and `bundle install`
-- `talon new` asks whether to commit the engine (`--[no-]commit-engine`). If not, a managed `.gitignore` block ignores it, and `talon engine use` keeps that block up to date
-- `config.yml` settings: `default_template`, `dev_id`, `dev_title`
-- `talon doctor` treats commented-out `game_metadata.txt` fields as unset
-- `talon run [ARGS...]`: runs the game (arguments such as `--record` pass through to `dragonruby`)
-- `talon test [FILES...]`: runs each `*_tests.rb` with `dragonruby --test`, headless by default. It reads DragonRuby's output (DragonRuby always exits 0) to report failures, files that don't load, files with no tests, and timeouts, and exits non-zero if any occur
-- `talon build`: `dragonruby-publish --only-package`, with a warning when `game_metadata.txt` is incomplete
-- `talon serve [DIR]`: serves the newest HTML5 build with `dragonruby-httpd` (`--port`)
-- `talon clean`: deletes `builds/`, `logs/`, `tmp/` and `errors/`
-- Dependencies are declared in the game directory's `dependencies.rb`, using a Foodchain-compatible DSL (`github`, `git`, `url`, `path`). They're vendored into `vendor/` and locked below `__END__` to commit SHAs (or content digests for URLs), each with a checksum of the vendored files
-- `talon add SOURCE` (`github:owner/repo`, `git:URL`, `url:URL`, `path:DIR`; `--path`, `--ref`, `--as`), `talon remove NAME`, `talon update [NAMES]` and `talon outdated`
-- `talon install`: installs the pinned engine if it's missing, then the locked dependencies. Locally modified vendored files stop it unless you pass `--force`. Foodchain's ETag locks are replaced
-- GitHub dependencies download a single tarball at the resolved commit; refs are resolved with `git ls-remote`
-- `talon doctor` checks that dependencies are installed and unmodified
-- `talon engine fetch [--tier]`: downloads the latest Pro or Indie engine from dragonruby.org (or Standard with itch.io's butler), imports it, and deletes the zip (`--keep-zip` keeps it). The tier defaults to that of your newest cached engine
-- `talon engine login` / `logout`: checks a dragonruby.org login and saves it to `credentials.yml` with mode 0600, or deletes it. `DRAGONRUBY_USERNAME` / `DRAGONRUBY_PASSWORD` take precedence; talon refuses credential files that other users can read
-- The free DragonRuby Jam license is a tier: `talon engine fetch --tier jam` downloads it from the free demo uploads on DragonRuby's itch.io page with no account, `talon engine import` recognises Jam zips, and projects pin it as `VERSION-jam`. Jam engines export to the web only, so `talon build` produces only the HTML5 package
-- Cached engines of the same version are ordered by tier capability (pro, indie, standard, jam), so `talon new` and `talon engine fetch` prefer the most capable one
-- `talon new NAME --template talon`: a game on the [Talon](https://github.com/asimmons91/talon) framework, with Talon declared in `dependencies.rb` and vendored (`--skip-deps` to skip; a failed download only warns). It adds a `Title` scene with a spinning logo (`Spin` component) and its DragonRuby test, an `app/main.rb` that runs `Talon::Game` with a requires block maintained by `talon generate`, and the `solargraph-dr_talon` editor plugin
-- `talon generate scene|component|prefab NAME` (alias `talon g`): writes `app/<kind>s/<name>.rb` and a DragonRuby test in `tests/<kind>s/`, and adds the require to `app/main.rb` (or prints it if the block is missing). It only runs in projects that use Talon. `--skip-test` and `--force` are available
-- Git errors in dependency messages are trimmed to git's first line
+First release: `talon`, a Rails-style CLI for DragonRuby Game Toolkit.
+
+### Engines
+
+- `talon engine import <zip|dir>` caches a DragonRuby engine as `VERSION-TIER-PLATFORM`, reading the version from
+  `CHANGELOG-CURR.txt`, the platform from the engine directory, and the tier from the zip name (or `--tier`).
+  Executable bits and the hidden `.dragonruby/` directory are kept; re-importing the same zip is a no-op.
+- `talon engine fetch` downloads the latest engine for this machine: Pro and Indie from dragonruby.org with your
+  account login, the free Jam license from DragonRuby's itch.io page with no account, and Standard with itch.io's
+  butler. The tier defaults to your newest cached engine's.
+- `talon engine login` / `logout` check and save, or delete, a dragonruby.org login in `credentials.yml` (mode 0600;
+  refused if others can read it). `DRAGONRUBY_USERNAME` / `DRAGONRUBY_PASSWORD` take precedence.
+- `talon engine list`, `which`, `uninstall` (asks first, since the cache may be the only copy of an old version).
+- `talon engine use [ENGINE]` pins an engine in `.dragonruby-version` (version and tier only, so it works on every
+  OS) and copies it into the project, cloning files on btrfs/XFS. Installed files are tracked in
+  `.talon/engine.yml`, so switching engines removes exactly those; `mygame/` and your own files are never touched,
+  and differing files stop the install unless `--force`. `talon engine current` shows pinned vs installed.
+
+### Projects
+
+- `talon new NAME` creates a game in DragonRuby's layout from the cached engine's own `mygame/`, with a starter
+  test, RuboCop and Solargraph config, `game_metadata.txt` filled in (`--title`, `--dev-id`, `--dev-title`,
+  `config.yml`, or asked for in a terminal, since `dragonruby-publish` needs them), and `git init` /
+  `bundle install`. It asks whether to commit the engine; if not, a managed `.gitignore` block
+  ignores it and `talon engine use` keeps the block current.
+- `talon new NAME --lib` creates a library (the repository root is the game directory) with `lib/`, a demo
+  `app/main.rb` and a DragonRuby test.
+- `talon new NAME --template talon` creates a game on the [Talon](https://github.com/asimmons91/talon) framework,
+  with Talon vendored, a `Title` scene, a `Spin` component and a test.
+- `talon generate scene|component|prefab NAME` (alias `talon g`) writes Talon code and a DragonRuby test, and adds
+  the require to `app/main.rb`.
+- `talon doctor` checks the pin, the cached and installed engine, dependencies, and `game_metadata.txt`.
+- `config.yml` settings: `default_template`, `dev_id`, `dev_title`.
+
+### Running, testing and building
+
+- `talon run [ARGS...]` runs the game; arguments such as `--record` pass through to `dragonruby`.
+- `talon test [FILES...]` runs each `*_tests.rb` with `dragonruby --test`, headless by default, and reads
+  DragonRuby's output (it always exits 0) to report failures, files that don't load, files with no tests and
+  timeouts, exiting non-zero on any of them.
+- `talon build` packages every platform with `dragonruby-publish --only-package`; `talon serve` serves the newest
+  HTML5 build with `dragonruby-httpd`; `talon clean` deletes `builds/`, `logs/`, `tmp/` and `errors/`.
+
+### Dependencies
+
+- Declared in the game directory's `dependencies.rb` with a Foodchain-compatible DSL (`github`, `git`, `url`,
+  `path`), vendored into `vendor/`, and locked below `__END__` to commit SHAs (or SHA-256s for URLs) with a checksum
+  of the vendored files. Foodchain's ETag locks are replaced on the first install.
+- `talon add SOURCE` (`github:owner/repo`, `git:URL`, `url:URL`, `path:DIR`; `--path`, `--ref`, `--as`) installs a
+  dependency and prints the line to require it; `talon remove`, `talon update`, `talon outdated`.
+- `talon install` restores the pinned engine if it's missing, then the locked dependencies. Locally edited vendored
+  files stop it unless `--force`.
+- GitHub dependencies resolve refs with `git ls-remote` and download one tarball per dependency.

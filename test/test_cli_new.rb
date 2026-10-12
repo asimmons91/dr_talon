@@ -66,6 +66,29 @@ class TestCLINew < Minitest::Test
     assert_includes metadata, "gametitle=Rocket"
   end
 
+  def test_bare_games_get_a_starter_test
+    root = new_project("my_game", "--no-commit-engine")
+
+    assert_includes read(root, "mygame", "tests", "main_tests.rb"), "def test_tests_get_dragonruby_args(args, assert)"
+  end
+
+  def test_dev_fields_are_asked_for_in_a_terminal
+    terminal = StringIO.new("y\nausty\n\n")
+    def terminal.tty? = true
+
+    Dir.chdir(@dir) do
+      previous = $stdin
+      $stdin = terminal
+      capture_io { DrTalon::CLI.start(["new", "my_game", "--skip-git", "--skip-bundle"]) }
+    ensure
+      $stdin = previous
+    end
+
+    metadata = read(File.join(@dir, "my_game"), "mygame", "metadata", "game_metadata.txt")
+    assert_includes metadata, "devid=austy\n"
+    assert_includes metadata, "# devtitle=Your Itch.io Display Name", "a blank answer leaves it to set later"
+  end
+
   def test_dev_fields_default_from_config
     FileUtils.mkdir_p(File.join(@dir, "home", "config"))
     File.write(File.join(@dir, "home", "config", "config.yml"), "dev_id: from_config\ndev_title: Config Name\n")

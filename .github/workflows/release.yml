@@ -1,0 +1,51 @@
+name: Release
+
+# Runs when a version tag is pushed (see `rake release:prepare`). Publishes the
+# gem to RubyGems.org with Trusted Publishing and creates the GitHub release
+# from the tag's CHANGELOG.md section.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Must match the environment configured for the trusted publisher on RubyGems.org.
+    environment: release
+    permissions:
+      contents: write # create the GitHub release
+      id-token: write # Trusted Publishing
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0.7"
+          bundler-cache: true
+
+      - name: Check the tag, version and changelog agree
+        run: bundle exec rake release:check
+      - name: Run the default task
+        run: bundle exec rake
+
+      # Runs `rake release`, which builds pkg/*.gem and pushes it. The tag
+      # already exists, so it doesn't create or push one.
+      - name: Publish to RubyGems.org
+        uses: rubygems/release-gem@v1
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          bundle exec rake release:notes > "$RUNNER_TEMP/notes.md"
+          gh release create "$GITHUB_REF_NAME" pkg/*.gem \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            --verify-tag

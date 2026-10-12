@@ -1,0 +1,7 @@
+# DragonRuby runs each method named test_* that takes (args, assert).
+# Run them with `talon test`; add files named *_tests.rb to this directory.
+class MainTests
+  def test_tests_get_dragonruby_args(args, assert)
+    assert.true! args.respond_to?(:outputs), "tests receive the same args as tick"
+  end
+end

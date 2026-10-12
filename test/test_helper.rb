@@ -6,6 +6,11 @@ require "dr_talon"
 require "fileutils"
 require "tmpdir"
 require "minitest/autorun"
+
+# Thor prompts through Readline when it can load it (Ruby before 4.0), and
+# Readline reads the real STDIN. Tests feed answers through $stdin, which
+# Thor's basic editor reads on every Ruby.
+Thor::LineEditor.singleton_class.prepend(Module.new { def best_available = Thor::LineEditor::Basic })
 require "open3"
 require "socket"
 

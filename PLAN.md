@@ -328,7 +328,7 @@ after unzip. Windows: `.exe` suffixes, no reflinks.
 | M5 | Deps | DSL, lockfile, github/url/path sources, `add/remove/install/update/outdated` |
 | M6 | Fetch | dragonruby.org API, butler, credential handling |
 | M7 | Talon | `talon` template, `generate scene/game_object/component` |
-| M8 | Release | README, docs, 0.1.0 to RubyGems |
+| M8 | Release | README, docs, 0.1.0 to RubyGems. Release pipeline mirrors solargraph-dragonruby: `rake release:prepare[X]` bumps, dates the changelog, commits and tags; pushing the tag runs `release.yml` (Trusted Publishing + GitHub release). CI matrix 3.2–4.0, verified locally with a Ruby 3.2 container. |
 
 ## 11. Prior art to look at
 
