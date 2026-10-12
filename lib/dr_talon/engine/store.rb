@@ -1,0 +1,92 @@
+# frozen_string_literal: true
+
+require "fileutils"
+require "tmpdir"
+
+module DrTalon
+  module Engine
+    # The global cache of unpacked engines, one directory per {Installation#id}.
+    #
+    # DragonRuby only offers its latest release for download, so this cache is
+    # also the only archive of older versions.
+    class Store
+      # @return [String]
+      attr_reader :root
+
+      # @param root [String] usually {Paths#engines_dir}
+      # @param host_platform [String] preferred when a spec omits the platform
+      def initialize(root, host_platform: Engine.host_platform)
+        @root = root
+        @host_platform = host_platform
+      end
+
+      # @return [Array<Installation>] newest version first
+      def installations
+        return [] unless File.directory?(root)
+
+        Dir.children(root)
+          .reject { |name| name.start_with?(".") }
+          .map { |name| File.join(root, name) }
+          .select { |path| File.file?(File.join(path, Installation::METADATA_FILE)) }
+          .map { |path| Installation.load(path) }
+          .sort_by { |installation| [installation.gem_version, installation.tier, installation.platform] }
+          .reverse
+      end
+
+      # @param id [String] a full {Installation#id}
+      # @return [Installation, nil]
+      def get(id)
+        path = path_for(id)
+        Installation.load(path) if File.file?(File.join(path, Installation::METADATA_FILE))
+      end
+
+      # Resolves a possibly partial spec to one installation. When the spec
+      # omits the platform, engines for the host platform win.
+      #
+      # @param spec [String, Spec]
+      # @return [Installation]
+      # @raise [NotFound, Ambiguous]
+      def find(spec)
+        spec = Spec.parse(spec) unless spec.is_a?(Spec)
+        matches = installations.select { |installation| spec.match?(installation) }
+        raise NotFound, "No cached engine matches #{spec}. Run `talon engine list` to see what's installed." if matches.empty?
+
+        if matches.size > 1 && spec.platform.nil?
+          native = matches.select { |installation| installation.platform == @host_platform }
+          matches = native unless native.empty?
+        end
+        return matches.first if matches.one?
+
+        raise Ambiguous, "#{spec} matches more than one engine: #{matches.map(&:id).join(", ")}. Use a full id."
+      end
+
+      # @param id [String]
+      # @return [String]
+      def path_for(id)
+        File.join(root, id)
+      end
+
+      # Deletes an installation from the cache.
+      #
+      # @param installation [Installation]
+      # @return [void]
+      def remove(installation)
+        FileUtils.rm_rf(installation.path)
+      end
+
+      # Yields an empty directory inside the store, on the same filesystem, so
+      # a finished import can be moved into place with a rename. The directory
+      # is removed afterwards.
+      #
+      # @yieldparam dir [String]
+      # @return [Object] the block's result
+      def stage
+        FileUtils.mkdir_p(root)
+        dir = Dir.mktmpdir(".staging-", root)
+        yield dir
+      ensure
+        FileUtils.rm_rf(dir) if dir
+      end
+    end
+  end
+end

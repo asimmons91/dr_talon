@@ -155,7 +155,10 @@ then infers layout from whether `mygame/app/main.rb` or `app/main.rb` exists.
   generators.
   - `bare`: DR's stock `mygame/` + dev tooling (Gemfile w/ rubocop,
     solargraph, solargraph-dragonruby; `.rubocop.yml`, `.solargraph.yml`,
-    `.editorconfig`, `.gitignore`).
+    `.editorconfig`, `.gitignore`). The stock `mygame/` is copied from the
+    cached engine (the store keeps it for this reason) rather than bundled in
+    the gem, so DragonRuby's sample sprites/metadata aren't redistributed
+    under the gem's MIT license.
   - `talon`: `bare` + talon dependency, `solargraph-dr_talon`, a starter
     `Talon::Game` + `Scene` in `main.rb`. Opt-in only.
 - Default template is `bare`; override per run with `--template` or globally

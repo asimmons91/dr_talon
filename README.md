@@ -2,7 +2,7 @@
 
 A Rails-style command line tool for [DragonRuby Game Toolkit](https://dragonruby.org). It manages engine versions, scaffolds new games, and manages DragonRuby dependencies.
 
-> **Status:** early development. Only `talon version` exists so far. See [PLAN.md](PLAN.md) for the design and roadmap.
+> **Status:** early development. Engine caching works; projects, scaffolding and dependencies are next. See [PLAN.md](PLAN.md) for the design and roadmap.
 
 ## Installation
 
@@ -18,6 +18,19 @@ The gem installs a `talon` executable.
 talon version      # or talon -v / talon --version
 talon help
 ```
+
+### Engines
+
+DragonRuby only offers its latest release for download, so talon keeps a cache of every engine you import. That cache is how you get back to older versions.
+
+```bash
+talon engine import ~/Downloads/dragonruby-pro-linux-amd64.zip   # or an extracted directory
+talon engine list
+talon engine which 7.23          # 7.23, 7.23-pro or 7.23-pro-linux-amd64
+talon engine uninstall 7.23      # asks first; --yes to skip
+```
+
+Engines are identified as `VERSION-TIER-PLATFORM`, for example `7.23-pro-linux-amd64`. The version comes from `CHANGELOG-CURR.txt` and the platform from the engine directory name. The tier comes from the zip or directory name; pass `--tier standard|indie|pro` if the name doesn't include it.
 
 ### Where talon keeps its files
 

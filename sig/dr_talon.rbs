@@ -17,8 +17,99 @@ module DrTalon
     def credentials_file: () -> String
   end
 
+  module Engine
+    TIERS: Array[String]
+
+    class InvalidEngine < Error
+    end
+
+    class NotFound < Error
+    end
+
+    class Ambiguous < Error
+    end
+
+    class AlreadyInstalled < Error
+    end
+
+    def self.host_platform: (?host_os: String, ?host_cpu: String) -> String
+
+    class Installation < Data
+      METADATA_FILE: String
+      RECORDED: Array[Symbol]
+
+      attr_reader version: String
+      attr_reader tier: String
+      attr_reader platform: String
+      attr_reader path: String
+      attr_reader build_date: String?
+      attr_reader git_sha: String?
+      attr_reader sha256: String?
+      attr_reader source: String?
+      attr_reader imported_at: String?
+
+      def self.load: (String path) -> Installation
+      def id: () -> String
+      def gem_version: () -> Gem::Version
+      def built_on: () -> String?
+      def write_metadata: (?String dir) -> void
+    end
+
+    class Spec < Data
+      PATTERN: Regexp
+
+      attr_reader version: String
+      attr_reader tier: String?
+      attr_reader platform: String?
+
+      def self.parse: (String string) -> Spec
+      def match?: (Installation installation) -> bool
+    end
+
+    class Inspector
+      CHANGELOG: String
+      VERSION_FILE: String
+      BINARIES: Array[String]
+
+      def self.find_root: (String dir) -> String
+      def self.engine_root?: (String dir) -> bool
+      def initialize: (String root, ?hints: Array[String], ?tier: String?, ?platform: String?) -> void
+      def details: () -> Hash[Symbol, String?]
+    end
+
+    class Store
+      attr_reader root: String
+
+      def initialize: (String root, ?host_platform: String) -> void
+      def installations: () -> Array[Installation]
+      def get: (String id) -> Installation?
+      def find: (String | Spec spec) -> Installation
+      def path_for: (String id) -> String
+      def remove: (Installation installation) -> void
+      def stage: [T] () { (String dir) -> T } -> T
+    end
+
+    class Importer
+      class Result < Data
+        attr_reader installation: Installation
+        attr_reader status: Symbol
+      end
+
+      def initialize: (Store store, ?tier: String?, ?platform: String?, ?force: bool) -> void
+      def import: (String source) -> Result
+    end
+  end
+
   class CLI < Thor
     def self.exit_on_failure?: () -> bool
     def version: () -> void
+
+    class Engine < Thor
+      def self.exit_on_failure?: () -> bool
+      def import: (String path) -> void
+      def list: () -> void
+      def which: (String spec) -> void
+      def uninstall: (String spec) -> void
+    end
   end
 end

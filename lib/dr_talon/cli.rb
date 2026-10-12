@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "thor"
+require_relative "cli/engine"
 
 module DrTalon
   # Entry point for the +talon+ executable.
@@ -18,5 +19,8 @@ module DrTalon
     def version
       say "talon #{VERSION}"
     end
+
+    desc "engine SUBCOMMAND", "Manage cached DragonRuby engines"
+    subcommand "engine", Engine
   end
 end
