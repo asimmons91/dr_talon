@@ -22,3 +22,5 @@
 - `talon doctor` checks that dependencies are installed and unmodified
 - `talon engine fetch [--tier]`: downloads the latest Pro or Indie engine from dragonruby.org (or Standard with itch.io's butler), imports it, and deletes the zip (`--keep-zip` keeps it). The tier defaults to that of your newest cached engine
 - `talon engine login` / `logout`: checks a dragonruby.org login and saves it to `credentials.yml` with mode 0600, or deletes it. `DRAGONRUBY_USERNAME` / `DRAGONRUBY_PASSWORD` take precedence; talon refuses credential files that other users can read
+- The free DragonRuby Jam license is a tier: `talon engine fetch --tier jam` downloads it from the free demo uploads on DragonRuby's itch.io page with no account, `talon engine import` recognises Jam zips, and projects pin it as `VERSION-jam`. Jam engines export to the web only, so `talon build` produces only the HTML5 package
+- Cached engines of the same version are ordered by tier capability (pro, indie, standard, jam), so `talon new` and `talon engine fetch` prefer the most capable one

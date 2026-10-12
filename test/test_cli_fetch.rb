@@ -3,6 +3,7 @@
 require "test_helper"
 require "minitest/mock"
 require "stringio"
+require_relative "test_engine_fetchers"
 
 class TestCLIFetch < Minitest::Test
   include EngineFixtures
@@ -26,8 +27,12 @@ class TestCLIFetch < Minitest::Test
         expected = "Basic #{["me:pw"].pack("m0")}"
         (headers["authorization"] == expected) ? [200, {}, @server.url("/engine.zip")] : [401, {}, "denied"]
       end,
-      "/engine.zip" => ->(_) { [200, {}, @zip] }
+      "/engine.zip" => ->(_) { [200, {}, @zip] },
+      "/game" => ->(_) { [200, {}, TestEngineFetchers::ITCH_PAGE] },
+      "/game/file/102" => ->(_, _) { [200, {}, JSON.generate("url" => @server.url("/jam.zip"))] },
+      "/jam.zip" => ->(_) { [200, {}, @jam_zip] }
     )
+    @jam_zip = File.binread(build_engine_zip(@dir, name: "dragonruby-gtk-linux-amd64-jam.zip", version: "7.24"))
   end
 
   def teardown
@@ -36,13 +41,25 @@ class TestCLIFetch < Minitest::Test
     FileUtils.rm_rf(@dir)
   end
 
+  # Points the dragonruby.org and itch.io fetchers at the test server.
   def talon(*args, stdin: StringIO.new)
-    fetcher = DrTalon::Engine::Fetcher.new(platform: "linux-amd64", api: @server.url("/api/download_%<tier>s_subscription_%<os>s"))
+    api = @server.url("/api/download_%<tier>s_subscription_%<os>s")
+    real_for = DrTalon::Engine::Fetchers.method(:for)
+    real_api = DrTalon::Engine::Fetchers::DragonRubyAPI.method(:new)
+    fetchers_for = lambda do |tier, **options|
+      case tier
+      when "jam" then DrTalon::Engine::Fetchers::ItchJam.new(platform: "linux-amd64", page: @server.url("/game"), **options)
+      when "pro", "indie" then real_api.call(tier, platform: "linux-amd64", api: api, **options)
+      else real_for.call(tier, **options)
+      end
+    end
     previous_stdin = $stdin
     $stdin = stdin
-    DrTalon::Engine::Fetcher.stub(:new, fetcher) do
-      DrTalon::Engine.stub(:host_platform, "linux-amd64") do
-        capture_io { DrTalon::CLI.start(args) }
+    DrTalon::Engine::Fetchers.stub(:for, fetchers_for) do
+      DrTalon::Engine::Fetchers::DragonRubyAPI.stub(:new, ->(tier, **o) { real_api.call(tier, platform: "linux-amd64", api: api, **o) }) do
+        DrTalon::Engine.stub(:host_platform, "linux-amd64") do
+          capture_io { DrTalon::CLI.start(args) }
+        end
       end
     end
   ensure
@@ -65,6 +82,17 @@ class TestCLIFetch < Minitest::Test
 
     out, _err = talon("engine", "fetch")
     assert_match(/already cached; it's the latest pro release/, out)
+  end
+
+  def test_fetch_jam_needs_no_login
+    out, _err = talon("engine", "fetch", "--tier", "jam")
+
+    assert_match(/Fetched 7\.24-jam-linux-amd64/, out)
+    assert_match(/talon engine use 7\.24-jam/, out)
+    refute @server.requests.any? { |path, _| path.start_with?("/api/") }
+
+    out, _err = talon("engine", "fetch")
+    assert_match(/already cached; it's the latest jam release/, out)
   end
 
   def test_keep_zip

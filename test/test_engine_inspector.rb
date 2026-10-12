@@ -48,6 +48,12 @@ class TestEngineInspector < Minitest::Test
     assert_raises(DrTalon::Engine::InvalidEngine) { Inspector.new(root, hints: %w[dragonruby-pro x-indie]).details }
   end
 
+  def test_jam_tier_from_the_itch_zip_name
+    root = build_engine_dir(@dir)
+
+    assert_equal "jam", Inspector.new(root, hints: ["dragonruby-gtk-linux-amd64-jam"]).details[:tier]
+  end
+
   def test_tier_is_not_matched_inside_other_words
     root = build_engine_dir(@dir)
 

@@ -115,16 +115,17 @@ The pin holds only the version and tier, so it works on every developer's OS. Th
 #### Downloading engines
 
 ```bash
-talon engine login               # once: saves your dragonruby.org login (mode 600)
-talon engine fetch               # latest release for this machine, same tier as your newest cached engine
+talon engine fetch --tier jam        # the free Jam license; no account needed
+talon engine login                   # once: saves your dragonruby.org login (mode 600)
+talon engine fetch                   # latest release for this machine, same tier as your newest cached engine
 talon engine fetch --tier indie
 talon engine fetch --tier standard   # via itch.io's butler, after `butler login`
 talon engine logout
 ```
 
-Pro and Indie engines download from dragonruby.org's subscription API using your account's login. talon looks for it in `DRAGONRUBY_USERNAME` and `DRAGONRUBY_PASSWORD` first, then in the file saved by `talon engine login`, and otherwise asks (offering to save it). The saved file stores the password in plain text, so it must be readable only by you; talon refuses to use it otherwise. Standard engines come from itch.io through [butler](https://itch.io/docs/butler/). DragonRuby only offers its newest release, so fetching regularly is how older versions stay available in your cache.
+The [Jam license](https://dragonruby.itch.io/dragonruby-gtk/devlog/1620970/dragonruby-jam-license-free-to-all) is free and can be used commercially. It has Standard's full API but only exports to the web. talon downloads it the same way the Download button on [DragonRuby's itch.io page](https://dragonruby.itch.io/dragonruby-gtk#demo) does, for Linux (x64 and arm64), macOS and Windows. If itch.io changes that page, download the zip by hand and run `talon engine import`; it recognises Jam zips by name. Pro and Indie engines download from dragonruby.org's subscription API using your account's login. talon looks for it in `DRAGONRUBY_USERNAME` and `DRAGONRUBY_PASSWORD` first, then in the file saved by `talon engine login`, and otherwise asks (offering to save it). The saved file stores the password in plain text, so it must be readable only by you; talon refuses to use it otherwise. Standard engines come from itch.io through [butler](https://itch.io/docs/butler/). DragonRuby only offers its newest release, so fetching regularly is how older versions stay available in your cache.
 
-Engines are identified as `VERSION-TIER-PLATFORM`, for example `7.23-pro-linux-amd64`. The version comes from `CHANGELOG-CURR.txt` and the platform from the engine directory name. The tier comes from the zip or directory name; pass `--tier standard|indie|pro` if the name doesn't include it.
+Engines are identified as `VERSION-TIER-PLATFORM`, for example `7.23-pro-linux-amd64`. The version comes from `CHANGELOG-CURR.txt` and the platform from the engine directory name. The tier comes from the zip or directory name; pass `--tier pro|indie|standard|jam` if the name doesn't include it.
 
 ### Where talon keeps its files
 

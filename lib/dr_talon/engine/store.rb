@@ -20,7 +20,8 @@ module DrTalon
         @host_platform = host_platform
       end
 
-      # @return [Array<Installation>] newest version first
+      # @return [Array<Installation>] newest version first, then the most
+      #   capable tier (see {TIERS})
       def installations
         return [] unless File.directory?(root)
 
@@ -29,8 +30,7 @@ module DrTalon
           .map { |name| File.join(root, name) }
           .select { |path| File.file?(File.join(path, Installation::METADATA_FILE)) }
           .map { |path| Installation.load(path) }
-          .sort_by { |installation| [installation.gem_version, installation.tier, installation.platform] }
-          .reverse
+          .sort { |a, b| sort_key(b) <=> sort_key(a) }
       end
 
       # @param id [String] a full {Installation#id}
@@ -86,6 +86,12 @@ module DrTalon
       def path_for(id)
         File.join(root, id)
       end
+
+      # Larger sorts first: newer versions, then more capable tiers.
+      def sort_key(installation)
+        [installation.gem_version, -(TIERS.index(installation.tier) || TIERS.size), installation.platform]
+      end
+      private :sort_key
 
       # Deletes an installation from the cache.
       #

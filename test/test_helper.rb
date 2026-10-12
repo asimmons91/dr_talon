@@ -175,8 +175,10 @@ module DepsFixtures
   end
 end
 
-# A tiny HTTP/1.1 server for HTTP client tests. Routes map a path to a
-# lambda receiving (headers) and returning [status, headers, body].
+# A tiny HTTP/1.1 server for HTTP client tests. Routes map a path (without
+# the query) to a lambda receiving (headers) or (headers, request_body) and
+# returning [status, headers, body]. Requests are recorded as
+# [path_with_query, headers, method, body].
 class TestServer
   attr_reader :port, :requests
 
@@ -208,9 +210,11 @@ class TestServer
         name, value = line.split(":", 2)
         headers[name.downcase] = value.strip
       end
-      path = request_line.split[1]
-      @requests << [path, headers]
-      status, response_headers, body = @routes.fetch(path, ->(_) { [404, {}, "not found"] }).call(headers)
+      method, path = request_line.split
+      body = headers["content-length"] ? client.read(headers["content-length"].to_i) : ""
+      @requests << [path, headers, method, body]
+      route = @routes.fetch(path.split("?").first, ->(_) { [404, {}, "not found"] })
+      status, response_headers, body = (route.arity == 2) ? route.call(headers, body) : route.call(headers)
       client.write("HTTP/1.1 #{status} X\r\nContent-Length: #{body.bytesize}\r\nConnection: close\r\n")
       response_headers.each { |name, value| client.write("#{name}: #{value}\r\n") }
       client.write("\r\n#{body}")

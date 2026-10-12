@@ -42,6 +42,7 @@ module DrTalon
     end
 
     def get: (String url, ?auth: Auth?) -> String
+    def post_form: (String url, Hash[String, String] form) -> String
     def download: (String url, String path, ?auth: Auth?) ?{ (Integer received, Integer? total) -> void } -> String
   end
 
@@ -217,23 +218,44 @@ module DrTalon
       def install: (Installation installation, ?force: bool) -> Result
     end
 
-    class Fetcher
-      API: String
-      TIERS: Array[String]
-      OS_NAMES: Hash[String, String]
+    module Fetchers
       ZIP_MAGIC: String
 
-      def initialize: (?http: HTTP, ?downloads_dir: String, ?platform: String, ?api: String) -> void
-      def api_url: (String tier) -> String
-      def verify: (Credentials credentials, String tier) -> void
-      def fetch: (Credentials credentials, String tier) ?{ (Integer received, Integer? total) -> void } -> String
-    end
+      def self.for: (String tier, **untyped options) -> (DragonRubyAPI | ItchJam | Butler)
+      def self.zip?: (String path) -> bool
+      def self.download_zip: (HTTP http, String url, String path, ?auth: HTTP::Auth?) ?{ (Integer, Integer?) -> void } -> String
 
-    class ButlerFetcher
-      GAME: String
+      class DragonRubyAPI
+        API: String
+        OS_NAMES: Hash[String, String]
 
-      def initialize: (?platform: String, ?butler: String) -> void
-      def fetch: (String dir) -> String
+        attr_reader tier: String
+
+        def initialize: (String tier, ?http: HTTP, ?downloads_dir: String, ?platform: String, ?api: String) -> void
+        def credentials?: () -> bool
+        def api_url: () -> String
+        def verify: (Credentials credentials) -> void
+        def fetch: (credentials: Credentials?) ?{ (Integer received, Integer? total) -> void } -> String
+      end
+
+      class ItchJam
+        PAGE: String
+        UPLOADS: Hash[String, String]
+
+        def initialize: (?http: HTTP, ?downloads_dir: String, ?platform: String, ?page: String) -> void
+        def tier: () -> String
+        def credentials?: () -> bool
+        def fetch: (?credentials: Credentials?) ?{ (Integer received, Integer? total) -> void } -> String
+      end
+
+      class Butler
+        GAME: String
+
+        def initialize: (?platform: String, ?downloads_dir: String, ?butler: String) -> void
+        def tier: () -> String
+        def credentials?: () -> bool
+        def fetch: (?credentials: Credentials?) -> String
+      end
     end
 
     module GitIgnore

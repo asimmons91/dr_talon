@@ -140,6 +140,20 @@ per-host-OS but contain all export stubs).
    linux (amd64), mac and windows downloads.
 3. `fetch` (Standard): shell out to `butler` if on PATH (offer to download it
    from `broth.itch.ovh`).
+4. `fetch` (Jam, DragonRuby's free license: Standard's API, web export
+   only): the free "demo" uploads on dragonruby.itch.io/dragonruby-gtk. No
+   account: read the page's `csrf_token` meta tag and the upload id of
+   "<platform> Jam License" (x64/arm64 Linux, macOS, Windows), POST to
+   `/file/<id>` for a short-lived signed URL, download
+   `dragonruby-gtk-<platform>-jam.zip`. This mirrors the page's Download
+   button, which is undocumented, so a changed page points users to
+   `talon engine import`. itch.io shuffles attribute order between
+   requests, so tags are parsed attribute by attribute. The Jam binary
+   reports "Tier: Standard" but ships only the html5 export stub; talon
+   treats it as its own tier (`7.23-jam`) so it never collides with a
+   purchased Standard engine.
+
+Tiers rank pro > indie > standard > jam; same-version engines sort that way.
 
 ## 5. Project layouts
 

@@ -36,6 +36,19 @@ class TestEngineStore < Minitest::Test
     assert_equal %w[7.23 7.9 6.58], @store.installations.map(&:version)
   end
 
+  def test_more_capable_tiers_sort_first_within_a_version
+    add("7.23", tier: "jam")
+    add("7.23", tier: "standard")
+    add("7.23", tier: "pro")
+    add("7.23", tier: "indie")
+    add("7.22", tier: "pro")
+
+    assert_equal %w[7.23-pro 7.23-indie 7.23-standard 7.23-jam 7.22-pro],
+      @store.installations.map { |i| "#{i.version}-#{i.tier}" }
+    assert_equal "pro", @store.latest_native.tier
+    assert_equal "7.23-jam-linux-amd64", @store.find("7.23-jam").id
+  end
+
   def test_ignores_staging_and_unrelated_directories
     add("7.23")
     FileUtils.mkdir_p(File.join(@store.root, ".staging-123"))

@@ -5,7 +5,9 @@ require "rbconfig"
 module DrTalon
   # Cached DragonRuby engines: identifying, importing and looking them up.
   module Engine
-    TIERS = %w[standard indie pro].freeze
+    # License tiers, most capable first. Jam is DragonRuby's free license:
+    # Standard's API, but it only exports to the web.
+    TIERS = %w[pro indie standard jam].freeze
 
     # The engine path doesn't look like a DragonRuby distribution, or a detail
     # such as its version can't be determined.
@@ -45,4 +47,4 @@ require_relative "engine/store"
 require_relative "engine/importer"
 require_relative "engine/materializer"
 require_relative "engine/git_ignore"
-require_relative "engine/fetcher"
+require_relative "engine/fetchers"

@@ -45,10 +45,15 @@ module DrTalon
       long_desc <<~DESC
         Downloads the newest DragonRuby release for this machine and imports it.
 
+        Jam (DragonRuby's free license: Standard's API, web export only) comes
+        from the free downloads on DragonRuby's itch.io page; no account needed.
+
         Pro and Indie come from dragonruby.org with your account's username and
         password, taken from DRAGONRUBY_USERNAME and DRAGONRUBY_PASSWORD, from
-        `talon engine login`, or asked for. Standard comes from itch.io with
-        butler (https://itch.io/docs/butler/), after `butler login`.
+        `talon engine login`, or asked for.
+
+        Standard comes from itch.io with butler (https://itch.io/docs/butler/),
+        after `butler login`.
 
         The tier defaults to that of your newest cached engine. DragonRuby only
         offers its latest release, so fetching regularly is how older versions
@@ -58,9 +63,10 @@ module DrTalon
       method_option :keep_zip, type: :boolean, default: false, desc: "Keep the downloaded zip in talon's cache directory"
       def fetch
         tier = options[:tier] || store.latest_native&.tier ||
-          raise(Thor::Error, "Pass --tier #{DrTalon::Engine::TIERS.join("|")} (no cached engine to take it from).")
+          raise(Thor::Error, "Pass --tier #{DrTalon::Engine::TIERS.join("|")} (no cached engine to take it from). " \
+            "Jam is free and needs no account.")
 
-        result = with_errors { (tier == "standard") ? fetch_with_butler : fetch_from_dragonruby(tier) }
+        result = with_errors { fetch_and_import(tier) }
         installation = result.installation
 
         if result.status == :unchanged
@@ -79,10 +85,10 @@ module DrTalon
         plain text there; DRAGONRUBY_USERNAME and DRAGONRUBY_PASSWORD are an
         alternative that stores nothing.
       DESC
-      method_option :tier, enum: DrTalon::Engine::Fetcher::TIERS, default: "pro", desc: "Tier to check the login against"
+      method_option :tier, enum: %w[pro indie], default: "pro", desc: "Tier to check the login against"
       def login
         credentials = ask_credentials
-        with_errors { DrTalon::Engine::Fetcher.new.verify(credentials, options[:tier]) }
+        with_errors { DrTalon::Engine::Fetchers::DragonRubyAPI.new(options[:tier]).verify(credentials) }
         credentials.save(Paths.new.credentials_file)
         say "Saved the login for #{credentials.username} to #{Paths.new.credentials_file} (mode 600)."
       end
@@ -204,11 +210,13 @@ module DrTalon
           nil
         end
 
-        def fetch_from_dragonruby(tier)
-          credentials = DrTalon::Credentials.lookup || ask_credentials(offer_to_save: true)
-          fetcher = DrTalon::Engine::Fetcher.new
-          zip = begin
-            fetcher.fetch(credentials, tier) { |received, total| show_progress(received, total) }
+        def fetch_and_import(tier)
+          fetcher = DrTalon::Engine::Fetchers.for(tier)
+          credentials = fetcher.credentials? ? DrTalon::Credentials.lookup || ask_credentials(offer_to_save: true) : nil
+          say "Downloading the latest #{tier} engine…" unless $stdout.tty?
+
+          path = begin
+            fetcher.fetch(credentials: credentials) { |received, total| show_progress(received, total) }
           rescue DrTalon::HTTP::Unauthorized
             source = {env: "DRAGONRUBY_USERNAME/DRAGONRUBY_PASSWORD", file: Paths.new.credentials_file, prompt: "what you typed"}
             raise DrTalon::Error, "dragonruby.org rejected the login from #{source.fetch(credentials.source)}. " \
@@ -218,17 +226,9 @@ module DrTalon
           end
 
           begin
-            DrTalon::Engine::Importer.new(store, tier: tier).import(zip)
+            DrTalon::Engine::Importer.new(store, tier: tier).import(path)
           ensure
-            FileUtils.rm_f(zip) unless options[:keep_zip]
-          end
-        end
-
-        def fetch_with_butler
-          Dir.mktmpdir("talon-butler") do |dir|
-            say "Downloading the latest Standard engine with butler…"
-            DrTalon::Engine::ButlerFetcher.new.fetch(dir)
-            DrTalon::Engine::Importer.new(store, tier: "standard").import(dir)
+            FileUtils.rm_rf(path) unless options[:keep_zip] && File.file?(path)
           end
         end
 
