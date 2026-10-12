@@ -118,7 +118,7 @@ namespace :release do
 
     puts <<~MSG
 
-      Prepared #{tag} (was v#{previous}). Review it with `git show #{tag}`, then publish with:
+      Prepared #{tag} (#{(version == previous) ? "first release" : "was v#{previous}"}). Review it with `git show #{tag}`, then publish with:
 
         git push origin main #{tag}
 
