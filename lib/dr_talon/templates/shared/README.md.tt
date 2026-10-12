@@ -29,9 +29,12 @@ bundle install
 
 ```bash
 <% if layout == :full -%>
-./dragonruby mygame
+talon run      # ./dragonruby mygame
+talon test     # *_tests.rb in mygame/tests/
+talon build    # package every platform into builds/
+talon serve    # play the HTML5 build at http://localhost:8080/
 <% else -%>
-./dragonruby .
-./dragonruby . --test test/<%= file_name %>_tests.rb
+talon run      # ./dragonruby .
+talon test     # ./dragonruby . --test for each test/*_tests.rb
 <% end -%>
 ```

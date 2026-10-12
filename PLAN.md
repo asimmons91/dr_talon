@@ -83,11 +83,12 @@ talon outdated
 
 ### Workflow wrappers (replace the mise tasks in the template)
 ```
-talon run  [--dev]                  # ./dragonruby mygame
-talon test [files...]               # runs *_tests.rb, parses output, real exit code
-talon build [--only-package]        # dragonruby-publish
-talon serve                         # dragonruby-httpd (html5 builds)
-talon clean                         # builds/ logs/ tmp/ errors/
+talon run  [ARGS...]                # ./dragonruby mygame ARGS (exec)
+talon test [FILES...]               # runs *_tests.rb, parses output, real exit code;
+                                    # headless (SDL dummy drivers) unless --no-headless
+talon build [ARGS...]               # dragonruby-publish --only-package (never uploads)
+talon serve [DIR] [--port 8080]     # dragonruby-httpd DIR PORT, default newest builds/*-html5-*/
+talon clean                         # builds/ logs/ tmp/ errors/ (+ mygame/ ones)
 talon doctor                        # engine present? matches pin? .dragonruby/ present?
                                     # metadata placeholders still set? deps in sync?
 ```

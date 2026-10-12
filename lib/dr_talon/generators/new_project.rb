@@ -121,7 +121,7 @@ module DrTalon
         say ""
         say "Created #{name} with DragonRuby #{engine.id}.", :green
         say "  cd #{relative}"
-        say((layout == :full) ? "  ./dragonruby mygame" : "  ./dragonruby . --test test/#{file_name}_tests.rb")
+        say((layout == :full) ? "  talon run" : "  talon test")
         say "  talon doctor"
       end
 

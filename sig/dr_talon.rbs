@@ -58,6 +58,8 @@ module DrTalon
   class Doctor
     METADATA_PLACEHOLDERS: Hash[String, String]
 
+    def self.unset_metadata: (Project project) -> Array[String]?
+
     class Check < Data
       attr_reader status: (:ok | :warning | :error)
       attr_reader message: String
@@ -190,6 +192,48 @@ module DrTalon
     end
   end
 
+  class TestReport < Data
+    SUMMARY: Regexp
+    EXCEPTION: Regexp
+    NO_TESTS: String
+    ENGINE_LINE: Regexp
+
+    attr_reader status: (:passed | :failed | :error | :no_tests | :timeout)
+    attr_reader passed: Integer
+    attr_reader failed: Integer
+    attr_reader inconclusive: Integer
+    attr_reader details: String
+    attr_reader output: String
+
+    def self.parse: (String output) -> TestReport
+    def self.timeout: (String output) -> TestReport
+    def passed?: () -> bool
+  end
+
+  class Runner
+    GENERATED_DIRS: Array[String]
+    TEST_PATTERN: String
+    TEST_DIRS: Array[String]
+    HEADLESS_ENV: Hash[String, String]
+
+    class MissingBinary < Error
+    end
+
+    def self.exec_process: (Array[String] argv, chdir: String) -> bot
+
+    def initialize: (Project project) -> void
+    def binary: (?String name) -> String
+    def game_arg: () -> String
+    def run_command: (?Array[String] args) -> Array[String]
+    def build_command: (?Array[String] args) -> Array[String]
+    def serve_command: (String dir, Integer port) -> Array[String]
+    def test_command: (String file) -> Array[String]
+    def html5_build: () -> String?
+    def test_files: (?Array[String] paths, ?base: String) -> Array[String]
+    def run_test: (String file, ?timeout: Numeric, ?headless: bool) -> TestReport
+    def clean: () -> Array[String]
+  end
+
   module Generators
     class NewProject < Thor::Group
       TEMPLATES: Array[String]
@@ -211,6 +255,11 @@ module DrTalon
     def self.exit_on_failure?: () -> bool
     def version: () -> void
     def new: (String path) -> void
+    def run_game: (*String args) -> void
+    def test: (*String paths) -> void
+    def build: (*String args) -> void
+    def serve: (?String? dir) -> void
+    def clean: () -> void
     def doctor: () -> void
 
     class Engine < Thor

@@ -77,4 +77,29 @@ module EngineFixtures
     File.write(File.join(game, "app", "main.rb"), "def tick(args); end\n")
     root
   end
+
+  # Replaces the project's dragonruby with a script that prints the
+  # "<test file minus .rb>.out" fixture next to the requested test file and
+  # records its arguments and SDL environment in args.log.
+  def install_fake_dragonruby(root, game_arg: "mygame")
+    script = <<~SH
+      #!/bin/sh
+      echo "$@ SDL_VIDEO_DRIVER=$SDL_VIDEO_DRIVER" >> args.log
+      if [ "$2" = "--test" ]; then
+        case "$3" in
+          *sleep*) sleep 5 ;;
+          *) cat "$1/${3%.rb}.out" ;;
+        esac
+      fi
+    SH
+    path = File.join(root, "dragonruby")
+    File.write(path, script)
+    File.chmod(0o755, path)
+    game_arg
+  end
+
+  # @return [String] the contents of a real DragonRuby output fixture
+  def dragonruby_output(name)
+    File.read(File.join(__dir__, "fixtures", "dragonruby", "#{name}.log"))
+  end
 end

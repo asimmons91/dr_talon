@@ -18,6 +18,22 @@ module DrTalon
       "gametitle" => "Your Game Title"
     }.freeze
 
+    # Publishing fields in +game_metadata.txt+ that are missing, commented out
+    # (as DragonRuby ships them) or still DragonRuby's placeholder.
+    #
+    # @param project [Project]
+    # @return [Array<String>, nil] nil when there's no metadata file
+    def self.unset_metadata(project)
+      path = File.join(project.game_dir, "metadata", "game_metadata.txt")
+      return nil unless File.file?(path)
+
+      values = File.readlines(path, chomp: true).filter_map do |line|
+        line.strip.split("=", 2) if !line.lstrip.start_with?("#") && line.include?("=")
+      end.to_h
+
+      METADATA_PLACEHOLDERS.select { |key, placeholder| values[key].nil? || values[key] == placeholder }.keys
+    end
+
     # @param project [Project]
     # @param store [Engine::Store]
     # @param host_platform [String]
@@ -112,18 +128,10 @@ module DrTalon
     end
 
     def check_metadata
-      path = File.join(@project.game_dir, "metadata", "game_metadata.txt")
-      unless File.file?(path)
+      unset = self.class.unset_metadata(@project)
+      if unset.nil?
         warning("No metadata/game_metadata.txt; it's needed to publish") if @project.layout == :full
-        return
-      end
-
-      values = File.readlines(path, chomp: true).filter_map do |line|
-        line.strip.split("=", 2) if !line.lstrip.start_with?("#") && line.include?("=")
-      end.to_h
-      unset = METADATA_PLACEHOLDERS.select { |key, placeholder| values[key].nil? || values[key] == placeholder }.keys
-
-      if unset.empty?
+      elsif unset.empty?
         ok "game_metadata.txt is filled in"
       else
         warning "game_metadata.txt doesn't set #{unset.join(", ")} yet (needed to publish)"

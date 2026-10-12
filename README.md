@@ -2,7 +2,7 @@
 
 A Rails-style command line tool for [DragonRuby Game Toolkit](https://dragonruby.org). It manages engine versions, scaffolds new games, and manages DragonRuby dependencies.
 
-> **Status:** early development. Engine caching, per-project pinning and `talon new` work; run/test/build wrappers and dependencies are next. See [PLAN.md](PLAN.md) for the design and roadmap.
+> **Status:** early development. Engine caching, per-project pinning, `talon new` and the run/test/build commands work; dependencies are next. See [PLAN.md](PLAN.md) for the design and roadmap.
 
 ## Installation
 
@@ -31,6 +31,19 @@ talon help new                     # all options
 `talon new` pins the newest cached engine (or `--engine 7.23-pro`) and installs it. It copies the engine's own sample game into `mygame/` and fills in `game_metadata.txt` (`gameid`, `gametitle`, and `devid`/`devtitle` from `--dev-id`/`--dev-title` or your config). It also adds RuboCop and Solargraph config, then runs `git init` and `bundle install` (`--skip-git`, `--skip-bundle`).
 
 It asks whether to commit the engine to git, which DragonRuby recommends for private and commercial games. Pass `--commit-engine` or `--no-commit-engine` to skip the question. If you don't commit it, the engine's files go in a marked section of `.gitignore`, and anyone who clones the project runs `talon engine use` to restore the pinned engine. Libraries never commit the engine.
+
+### Running, testing and building
+
+```bash
+talon run                 # ./dragonruby mygame (or . for libraries); extra args pass through
+talon test                # every *_tests.rb in test/ and tests/ under the game directory
+talon test test/foo_tests.rb --no-headless --timeout 30 --verbose
+talon build               # dragonruby-publish --only-package: every platform into builds/
+talon serve               # newest HTML5 build at http://localhost:8080/ (--port)
+talon clean               # delete builds/, logs/, tmp/, errors/
+```
+
+DragonRuby's test runner always exits 0, so `talon test` reads its output instead. It prints each file's result and the details of any failure. It exits non-zero if a test fails, a file doesn't load, a file has no tests, or a run passes `--timeout` (default 120 seconds). Tests run headless by default using SDL's dummy video and audio drivers, so no window opens and they work in CI. Pass `--no-headless` for tests that need real rendering.
 
 ### Configuration
 

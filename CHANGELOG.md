@@ -10,3 +10,8 @@
 - `talon new` asks whether to commit the engine (`--[no-]commit-engine`). If not, a managed `.gitignore` block ignores it, and `talon engine use` keeps that block up to date
 - `config.yml` settings: `default_template`, `dev_id`, `dev_title`
 - `talon doctor` treats commented-out `game_metadata.txt` fields as unset
+- `talon run [ARGS...]`: runs the game (arguments such as `--record` pass through to `dragonruby`)
+- `talon test [FILES...]`: runs each `*_tests.rb` with `dragonruby --test`, headless by default. It reads DragonRuby's output (DragonRuby always exits 0) to report failures, files that don't load, files with no tests, and timeouts, and exits non-zero if any occur
+- `talon build`: `dragonruby-publish --only-package`, with a warning when `game_metadata.txt` is incomplete
+- `talon serve [DIR]`: serves the newest HTML5 build with `dragonruby-httpd` (`--port`)
+- `talon clean`: deletes `builds/`, `logs/`, `tmp/` and `errors/`

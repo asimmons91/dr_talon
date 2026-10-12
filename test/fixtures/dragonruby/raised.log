@@ -1,0 +1,48 @@
+* [Engine] Log started at 2026/10/11 19:0:46
+* [Engine] DragonRuby Game Toolkit
+* [Engine]   Version: 7.23
+* [Engine]   Tier: Pro
+* [Engine]   GIT Hash: 0c37cf3bb50cff40b47bc6b935bdd106e47aebad
+* [Engine]   Build Date: Oct  7 2026 22:17:46
+* [Engine] Platform: Linux
+- [Engine] Process Working Directory: /project/
+- [Engine] Game Dir: .
+- [Engine] Game ID: hello-SDL
+- [Engine] Game Title: Update metadata/game_metadata.txt in your mygame directory to change this title.
+- [Engine] Game Version: 1.0
+- [Engine] Game Package ID: 
+- [Engine] Game Developer ID: dragonruby
+- [Engine] Game Developer Title: DragonRuby LLC
+- [Engine] Production Build: no
+- [Engine] Remote Hotload: no
+- [Render] SDL Video Backend: wayland
+- [Render] SDL Renderer Backend: opengl
+- [Render] Window Size: 1280x720 (requested 1280x720)
+- [Render] Fullscreen Desktop Mode: no
+- [Render] HD: no
+- [Render] HighDPI: no
+- [Render] Max Texture Size: 16384x16384 (system reported 16384x16384)
+- [Render] Native Resolution: 1280x720
+- [Engine] Aspect Mode: 16:9
+- [Engine] Aspect Size: 720
+- [Render] Logical Resolution: 1280x720
+- [Render] Logical Origin: bottom_left
+? [Engine] RNG seed has been set to 1791770447.
+- [Engine] Janitor is using 4 threads.
+- [Game] --test switch found. Executing code inside of =test/raising_tests.rb=.
+- [Game] * TEST: gtk.test.start has been invoked.
+- [Game] ** Running: RaisingTests#test_raises
+- [Game] Failed.
+- [Game] ** Summary
+- [Game] *** Passed
+- [Game] 0 test(s) passed.
+- [Game] *** Inconclusive
+- [Game] 0 test(s) inconclusive.
+- [Game] *** Failed
+- [Game] 1 test(s) failed.
+- [Game] **** Test name: RaisingTests#test_raises
+- [Game] boom
+** Backtrace:
+*** test/raising_tests.rb:5:in test_raises
+- [Engine] * INFO: Quit requested (-1).
+* [Engine] Logging shutting down

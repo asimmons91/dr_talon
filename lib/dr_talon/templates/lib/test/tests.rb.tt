@@ -1,6 +1,6 @@
 require "test/test_helper.rb"
 
-# Run with: ./dragonruby . --test test/<%= file_name %>_tests.rb
+# Run with: talon test
 class <%= module_name %>Tests
   def test_has_a_version(args, assert)
     assert.true! <%= module_name %>::VERSION.is_a?(String), "VERSION should be a String"
