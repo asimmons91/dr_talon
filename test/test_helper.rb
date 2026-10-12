@@ -45,4 +45,21 @@ module EngineFixtures
     end
     path
   end
+
+  # Imports a fixture engine into +store+ and returns the installation.
+  def import_engine(store, dir, version: "7.23", tier: "pro", platform: "linux-amd64", &customize)
+    parent = Dir.mktmpdir("engine", dir)
+    root = build_engine_dir(parent, version: version, platform: platform)
+    customize&.call(root)
+    DrTalon::Engine::Importer.new(store, tier: tier).import(root).installation
+  end
+
+  # @return [String] a project directory with a game in the given layout
+  def build_project(dir, layout: :full)
+    root = Dir.mktmpdir("project", dir)
+    game = (layout == :full) ? File.join(root, "mygame") : root
+    FileUtils.mkdir_p(File.join(game, "app"))
+    File.write(File.join(game, "app", "main.rb"), "def tick(args); end\n")
+    root
+  end
 end

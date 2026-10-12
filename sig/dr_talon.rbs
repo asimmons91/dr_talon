@@ -17,6 +17,46 @@ module DrTalon
     def credentials_file: () -> String
   end
 
+  module FileCopy
+    FICLONE: Integer
+    CLONE_UNSUPPORTED: Array[Class]
+
+    def self.copy: (String src, String dst) -> bool
+    def self.try_clone: (IO input, IO output) -> bool
+  end
+
+  class Project
+    PIN_FILE: String
+
+    class NotFound < Error
+    end
+
+    def self.find: (?String dir) -> Project?
+    def self.locate: (?String dir) -> Project
+
+    attr_reader root: String
+
+    def initialize: (String root) -> void
+    def layout: () -> (:full | :game_only | nil)
+    def game_dir: () -> String
+    def pin_path: () -> String
+    def pin: () -> Engine::Spec?
+    def pin!: (Engine::Installation installation) -> void
+    def path: (*String relative) -> String
+  end
+
+  class Doctor
+    METADATA_PLACEHOLDERS: Hash[String, String]
+
+    class Check < Data
+      attr_reader status: (:ok | :warning | :error)
+      attr_reader message: String
+    end
+
+    def initialize: (Project project, Engine::Store store, ?host_platform: String) -> void
+    def checks: () -> Array[Check]
+  end
+
   module Engine
     TIERS: Array[String]
 
@@ -98,17 +138,47 @@ module DrTalon
       def initialize: (Store store, ?tier: String?, ?platform: String?, ?force: bool) -> void
       def import: (String source) -> Result
     end
+
+    class Materializer
+      MANIFEST: String
+      GAME_ONLY_FILES: Array[String]
+      SKIPPED: Array[String]
+      SKIPPED_NAMES: Array[String]
+
+      class Conflict < Error
+      end
+
+      class Manifest < Data
+        attr_reader engine: String?
+        attr_reader files: Array[String]
+      end
+
+      class Result < Data
+        attr_reader copied: Integer
+        attr_reader removed: Integer
+        attr_reader cloned: Integer
+      end
+
+      def initialize: (Project project) -> void
+      def manifest: () -> Manifest?
+      def files_for: (Installation installation) -> Array[String]
+      def conflicts: (Installation installation) -> Array[String]
+      def install: (Installation installation, ?force: bool) -> Result
+    end
   end
 
   class CLI < Thor
     def self.exit_on_failure?: () -> bool
     def version: () -> void
+    def doctor: () -> void
 
     class Engine < Thor
       def self.exit_on_failure?: () -> bool
       def import: (String path) -> void
       def list: () -> void
-      def which: (String spec) -> void
+      def which: (?String? spec) -> void
+      def use: (?String? spec) -> void
+      def current: () -> void
       def uninstall: (String spec) -> void
     end
   end

@@ -116,7 +116,7 @@ per-host-OS but contain all export stubs).
 - Use reflink copies (`cp --reflink=auto` semantics / `FICLONE`) when the FS
   supports it (btrfs/xfs/APFS), else plain copy. Avoid symlinks: DR resolves
   sandbox paths from the binary location.
-- Write `.talon/engine-manifest` listing every file we placed. On
+- Write `.talon/engine.yml` (engine id + every file we placed). On
   `engine use <other>`, remove exactly those files, then lay down the new
   engine. Never touch files not in the manifest (user's `mygame/`, Gemfile...).
 - **[D2, decided]** `talon new` asks whether to commit the engine. If not,
@@ -142,8 +142,10 @@ per-host-OS but contain all export stubs).
   project root = engine, game code in `mygame/`. `talon run` →
   `./dragonruby mygame`.
 - **game-only** (matches the `talon` library repo): repo root *is* the game dir
-  (`app/`, `lib/`, `test/`); engine materialized at root and gitignored;
-  `talon run` → `./dragonruby .`. Best for libraries (`talon new --lib`).
+  (`app/`, `lib/`, `test/`); only the runtime (`dragonruby` binary,
+  `font.ttf`, and top-level DLLs on Windows) is materialized at the root and
+  gitignored; `talon run` → `./dragonruby .`. Best for libraries
+  (`talon new --lib`).
 
 `Project` detection walks up from cwd looking for `.dragonruby-version`,
 then infers layout from whether `mygame/app/main.rb` or `app/main.rb` exists.
