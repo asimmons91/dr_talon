@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-11
+
 First release: `talon`, a Rails-style CLI for DragonRuby Game Toolkit.
 
 ### Engines
@@ -53,3 +55,6 @@ First release: `talon`, a Rails-style CLI for DragonRuby Game Toolkit.
 - `talon install` restores the pinned engine if it's missing, then the locked dependencies. Locally edited vendored
   files stop it unless `--force`.
 - GitHub dependencies resolve refs with `git ls-remote` and download one tarball per dependency.
+
+[Unreleased]: https://github.com/asimmons91/dr_talon/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/asimmons91/dr_talon/releases/tag/v0.1.0
