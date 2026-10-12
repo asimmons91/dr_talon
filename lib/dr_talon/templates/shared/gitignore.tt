@@ -1,0 +1,19 @@
+# DragonRuby
+/builds/
+/logs/
+/tmp/
+/errors/
+<% if layout == :full -%>
+/mygame/errors/
+<% end -%>
+
+# Ruby tooling
+/.bundle/
+
+# Editors
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets

@@ -96,9 +96,16 @@ class TestDoctor < Minitest::Test
     install
     write_metadata(PLACEHOLDER_METADATA)
 
-    assert_equal ["game_metadata.txt still has placeholder values for devid, devtitle, gameid, gametitle (needed to publish)"],
+    assert_equal ["game_metadata.txt doesn't set devid, devtitle, gameid, gametitle yet (needed to publish)"],
       messages(:warning)
     assert_empty messages(:error)
+  end
+
+  def test_commented_out_metadata_counts_as_unset
+    install
+    write_metadata("# devid=me\ndevtitle=Me\ngameid=game\ngametitle=Game\n")
+
+    assert_equal ["game_metadata.txt doesn't set devid yet (needed to publish)"], messages(:warning)
   end
 
   def test_missing_metadata_is_a_warning_for_full_layouts

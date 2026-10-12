@@ -1,0 +1,7 @@
+source "https://rubygems.org"
+
+# Editor and lint tooling only. DragonRuby doesn't load gems; game
+# dependencies go in <%= dependencies_hint %>.
+gem "rubocop-rails-omakase", require: false
+gem "solargraph", require: false
+gem "solargraph-dragonruby", require: false

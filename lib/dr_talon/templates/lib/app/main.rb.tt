@@ -1,0 +1,13 @@
+require "lib/<%= file_name %>.rb"
+
+# A small demo of the library; the game DragonRuby runs from this directory.
+def tick(args)
+  args.outputs.labels << {
+    x: 640,
+    y: 360,
+    text: "<%= module_name %> #{<%= module_name %>::VERSION}",
+    size_px: 30,
+    anchor_x: 0.5,
+    anchor_y: 0.5
+  }
+end

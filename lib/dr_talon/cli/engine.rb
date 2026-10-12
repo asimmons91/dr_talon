@@ -59,7 +59,7 @@ module DrTalon
 
       desc "which [ENGINE]", "Print the path of a cached engine (default: this project's pin)"
       def which(spec = nil)
-        say with_errors { spec ? store.find(spec) : find_for_host(required_pin) }.path
+        say with_errors { spec ? store.find(spec) : store.find_native(required_pin) }.path
       end
 
       desc "use [ENGINE]", "Pin an engine for this project and install it here"
@@ -80,10 +80,12 @@ module DrTalon
         project = with_errors { Project.locate }
         installation, previous, result = with_errors do
           requested = spec ? DrTalon::Engine::Spec.parse(spec) : required_pin(project)
-          installation = find_for_host(requested, project.pin&.tier)
+          installation = store.find_native(requested, default_tier: project.pin&.tier)
           materializer = DrTalon::Engine::Materializer.new(project)
           previous = materializer.manifest&.engine
-          [installation, previous, materializer.install(installation, force: options[:force])]
+          result = materializer.install(installation, force: options[:force])
+          DrTalon::Engine::GitIgnore.refresh(project.path(".gitignore"), materializer.manifest.files)
+          [installation, previous, result]
         end
 
         repinned = project.pin&.then { |pin| "#{pin.version}-#{pin.tier}" } != "#{installation.version}-#{installation.tier}"
@@ -134,17 +136,6 @@ module DrTalon
           @store ||= DrTalon::Engine::Store.new(Paths.new.engines_dir)
         end
 
-        # Resolves +spec+ to an engine for this machine, since a project can
-        # only run its host's build. A missing tier defaults to +tier+.
-        def find_for_host(spec, tier = nil)
-          host = DrTalon::Engine.host_platform
-          if spec.platform && spec.platform != host
-            raise DrTalon::Error, "This machine runs #{host} engines; #{spec} is for #{spec.platform}."
-          end
-
-          store.find(DrTalon::Engine::Spec.new(version: spec.version, tier: spec.tier || tier, platform: host))
-        end
-
         def required_pin(project = Project.find)
           pin = project&.pin
           return pin if pin
@@ -154,7 +145,7 @@ module DrTalon
 
         def pinned_installation
           pin = Project.find&.pin
-          pin && find_for_host(pin)
+          pin && store.find_native(pin)
         rescue DrTalon::Error
           nil
         end

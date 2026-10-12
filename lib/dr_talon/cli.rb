@@ -2,6 +2,7 @@
 
 require "thor"
 require_relative "cli/engine"
+require_relative "generators/new_project"
 
 module DrTalon
   # Entry point for the +talon+ executable.
@@ -18,6 +19,25 @@ module DrTalon
     desc "version", "Print the talon version"
     def version
       say "talon #{VERSION}"
+    end
+
+    desc "new PATH", "Create a DragonRuby game (or a library with --lib) with a pinned engine"
+    long_desc <<~DESC
+      Creates PATH with a game in DragonRuby's layout (mygame/, started from the
+      engine's own sample game) or, with --lib, a library whose root is the game
+      directory. Pins and installs a cached engine (the newest unless --engine),
+      fills in game_metadata.txt, adds editor tooling, then runs git init and
+      bundle install.
+
+      You're asked whether to commit the engine unless you pass --commit-engine
+      or --no-commit-engine. If not committed, it's gitignored and anyone cloning
+      the project restores it with `talon engine use`.
+    DESC
+    method_options.merge!(Generators::NewProject.class_options)
+    def new(path)
+      Generators::NewProject.new([path], options, shell: shell).invoke_all
+    rescue DrTalon::Error => e
+      raise Thor::Error, e.message
     end
 
     desc "doctor", "Check this project's engine, game and metadata"

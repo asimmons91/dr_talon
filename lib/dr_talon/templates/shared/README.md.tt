@@ -1,0 +1,37 @@
+# <%= title %>
+
+<% if layout == :full -%>
+A [DragonRuby](https://dragonruby.org) game.
+<% else -%>
+A [DragonRuby](https://dragonruby.org) library.
+<% end -%>
+
+## Setup
+
+<% if commit_engine? -%>
+The DragonRuby engine (<%= engine.version %> <%= engine.tier %>) is committed with the project.
+<% else -%>
+The project pins DragonRuby <%= engine.version %> (<%= engine.tier %>) in `.dragonruby-version`; the engine itself isn't committed. Install it with [talon](https://github.com/asimmons91/dr_talon):
+
+```bash
+talon engine import path/to/dragonruby-<%= engine.tier %>-<%= engine.platform %>.zip   # once per machine
+talon engine use
+```
+<% end -%>
+
+Editor tooling (RuboCop, Solargraph):
+
+```bash
+bundle install
+```
+
+## Running
+
+```bash
+<% if layout == :full -%>
+./dragonruby mygame
+<% else -%>
+./dragonruby .
+./dragonruby . --test test/<%= file_name %>_tests.rb
+<% end -%>
+```

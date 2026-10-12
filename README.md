@@ -2,7 +2,7 @@
 
 A Rails-style command line tool for [DragonRuby Game Toolkit](https://dragonruby.org). It manages engine versions, scaffolds new games, and manages DragonRuby dependencies.
 
-> **Status:** early development. Engine caching and per-project pinning work; scaffolding and dependencies are next. See [PLAN.md](PLAN.md) for the design and roadmap.
+> **Status:** early development. Engine caching, per-project pinning and `talon new` work; run/test/build wrappers and dependencies are next. See [PLAN.md](PLAN.md) for the design and roadmap.
 
 ## Installation
 
@@ -17,6 +17,29 @@ The gem installs a `talon` executable.
 ```bash
 talon version      # or talon -v / talon --version
 talon help
+```
+
+### New projects
+
+```bash
+talon engine import ~/Downloads/dragonruby-pro-linux-amd64.zip   # once
+talon new my_game                  # a game, in DragonRuby's layout (mygame/)
+talon new my-lib --lib             # a library: lib/, app/main.rb, test/
+talon help new                     # all options
+```
+
+`talon new` pins the newest cached engine (or `--engine 7.23-pro`) and installs it. It copies the engine's own sample game into `mygame/` and fills in `game_metadata.txt` (`gameid`, `gametitle`, and `devid`/`devtitle` from `--dev-id`/`--dev-title` or your config). It also adds RuboCop and Solargraph config, then runs `git init` and `bundle install` (`--skip-git`, `--skip-bundle`).
+
+It asks whether to commit the engine to git, which DragonRuby recommends for private and commercial games. Pass `--commit-engine` or `--no-commit-engine` to skip the question. If you don't commit it, the engine's files go in a marked section of `.gitignore`, and anyone who clones the project runs `talon engine use` to restore the pinned engine. Libraries never commit the engine.
+
+### Configuration
+
+`~/.config/dr_talon/config.yml` (see the table below for other platforms):
+
+```yaml
+default_template: bare      # or lib
+dev_id: my_itchio_username  # devid in game_metadata.txt
+dev_title: My Name          # devtitle in game_metadata.txt
 ```
 
 ### Engines

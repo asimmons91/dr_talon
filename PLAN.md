@@ -163,16 +163,23 @@ then infers layout from whether `mygame/app/main.rb` or `app/main.rb` exists.
     under the gem's MIT license.
   - `talon`: `bare` + talon dependency, `solargraph-dr_talon`, a starter
     `Talon::Game` + `Scene` in `main.rb`. Opt-in only.
+  - `lib`: game-only layout with `lib/<name>.rb`, `lib/<name>/version.rb`,
+    `app/main.rb` (demo), `test/test_helper.rb` and a DragonRuby test.
+    File names use underscores (`my-lib` → `lib/my_lib.rb`, `MyLib`).
 - Default template is `bare`; override per run with `--template` or globally
   with `default_template:` in `~/.config/dr_talon/config.yml` **[D7, decided]**.
-  - `lib`: game-only layout with `lib/<name>.rb`, `test/test_helper.rb`.
 - `--template <git-url|path>` for user templates: a repo with a
   `template.rb` (Rails app-template style, has the Thor action DSL) and/or a
-  `files/` tree.
-- Fill `metadata/game_metadata.txt` (`gameid`, `gametitle`, `devid`,
-  `devtitle`, `version`) from flags/prompts/config.
+  `files/` tree. *(Not in M3; later.)*
+- Fill `metadata/game_metadata.txt`: DragonRuby ships the publishing fields
+  commented out (`# devid=...`), so `new` uncomments and sets `gameid`,
+  `gametitle`, `version`, `icon`, and `devid`/`devtitle` when known (flags or
+  config); unknown ones stay commented and `talon doctor` reports them.
+- When the engine isn't committed, `new` writes a marked block to
+  `.gitignore` listing the engine's top-level entries plus `/.talon/`;
+  `talon engine use` regenerates the block so it follows engine changes.
 - Optional `mise.toml` with only `[tools] ruby = ...` (tasks become
-  `talon` commands).
+  `talon` commands). *(Not in M3; later, probably as a config default.)*
 
 ## 7. Dependency management
 

@@ -1,0 +1,4 @@
+require_relative "<%= file_name %>/version"
+
+module <%= module_name %>
+end

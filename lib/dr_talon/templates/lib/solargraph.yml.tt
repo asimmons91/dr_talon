@@ -1,0 +1,23 @@
+---
+include:
+  - "app/**/*.rb"
+  - "lib/**/*.rb"
+exclude:
+  - "test/**/*"
+  - "vendor/**/*"
+require: []
+domains: []
+reporters:
+  - rubocop
+formatter:
+  rubocop:
+    cops: safe
+    except: []
+    only: []
+    extra_args: []
+type_checker:
+  rules: {}
+require_paths: []
+plugins:
+  - solargraph-dragonruby
+max_files: 5000

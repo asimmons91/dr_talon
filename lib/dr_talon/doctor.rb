@@ -121,12 +121,12 @@ module DrTalon
       values = File.readlines(path, chomp: true).filter_map do |line|
         line.strip.split("=", 2) if !line.lstrip.start_with?("#") && line.include?("=")
       end.to_h
-      placeholders = METADATA_PLACEHOLDERS.select { |key, value| values[key] == value }.keys
+      unset = METADATA_PLACEHOLDERS.select { |key, placeholder| values[key].nil? || values[key] == placeholder }.keys
 
-      if placeholders.empty?
+      if unset.empty?
         ok "game_metadata.txt is filled in"
       else
-        warning "game_metadata.txt still has placeholder values for #{placeholders.join(", ")} (needed to publish)"
+        warning "game_metadata.txt doesn't set #{unset.join(", ")} yet (needed to publish)"
       end
     end
   end

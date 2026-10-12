@@ -17,6 +17,16 @@ module DrTalon
     def credentials_file: () -> String
   end
 
+  class Config < Data
+    DEFAULTS: Hash[Symbol, String?]
+
+    attr_reader default_template: String
+    attr_reader dev_id: String?
+    attr_reader dev_title: String?
+
+    def self.load: (?String path) -> Config
+  end
+
   module FileCopy
     FICLONE: Integer
     CLONE_UNSUPPORTED: Array[Class]
@@ -124,6 +134,8 @@ module DrTalon
       def installations: () -> Array[Installation]
       def get: (String id) -> Installation?
       def find: (String | Spec spec) -> Installation
+      def find_native: (Spec spec, ?default_tier: String?) -> Installation
+      def latest_native: () -> Installation?
       def path_for: (String id) -> String
       def remove: (Installation installation) -> void
       def stage: [T] () { (String dir) -> T } -> T
@@ -165,11 +177,40 @@ module DrTalon
       def conflicts: (Installation installation) -> Array[String]
       def install: (Installation installation, ?force: bool) -> Result
     end
+
+    module GitIgnore
+      BEGIN_MARKER: String
+      END_MARKER: String
+      BLOCK: Regexp
+
+      def self.patterns: (Array[String] files) -> Array[String]
+      def self.block?: (String path) -> bool
+      def self.write: (String path, Array[String] files) -> void
+      def self.refresh: (String path, Array[String] files) -> bool
+    end
+  end
+
+  module Generators
+    class NewProject < Thor::Group
+      TEMPLATES: Array[String]
+      NAME_PATTERN: Regexp
+
+      def self.source_root: () -> String
+      def name: () -> String
+      def file_name: () -> String
+      def module_name: () -> String
+      def title: () -> String
+      def template_name: () -> String
+      def layout: () -> (:full | :game_only)
+      def engine: () -> Engine::Installation
+      def commit_engine?: () -> bool
+    end
   end
 
   class CLI < Thor
     def self.exit_on_failure?: () -> bool
     def version: () -> void
+    def new: (String path) -> void
     def doctor: () -> void
 
     class Engine < Thor

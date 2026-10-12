@@ -60,6 +60,27 @@ module DrTalon
         raise Ambiguous, "#{spec} matches more than one engine: #{matches.map(&:id).join(", ")}. Use a full id."
       end
 
+      # Resolves +spec+ to an engine built for this machine, since a project
+      # can only run its host's build.
+      #
+      # @param spec [Spec]
+      # @param default_tier [String, nil] used when +spec+ omits the tier
+      # @return [Installation]
+      # @raise [Error] if +spec+ names another platform
+      # @raise [NotFound, Ambiguous]
+      def find_native(spec, default_tier: nil)
+        if spec.platform && spec.platform != @host_platform
+          raise Error, "This machine runs #{@host_platform} engines; #{spec} is for #{spec.platform}."
+        end
+
+        find(Spec.new(version: spec.version, tier: spec.tier || default_tier, platform: @host_platform))
+      end
+
+      # @return [Installation, nil] the newest engine for this machine
+      def latest_native
+        installations.find { |installation| installation.platform == @host_platform }
+      end
+
       # @param id [String]
       # @return [String]
       def path_for(id)

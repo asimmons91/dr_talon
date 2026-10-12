@@ -13,6 +13,19 @@ module EngineFixtures
   BUILD_DATE = "Wed Oct 7 22:19:14 CDT 2026"
   GIT_SHA = "0c37cf3bb50cff40b47bc6b935bdd106e47aebada"
 
+  # The publishing section of DragonRuby's stock game_metadata.txt.
+  STOCK_METADATA = <<~TXT
+    # === Remove the pound sign and leading space for the properties below before publishing your game. ===
+    # devid=your_itchio_username
+    # devtitle=Your Itch.io Display Name
+    # gameid=your_itchio_game_id
+    # gametitle=Your Game Title
+    # version=0.1
+    # icon=metadata/icon.png
+
+    orientation=landscape
+  TXT
+
   # @return [String] the engine root, +parent/dragonruby-<platform>+
   def build_engine_dir(parent, version: "7.23", platform: "linux-amd64", binary: "dragonruby")
     root = File.join(parent, "dragonruby-#{platform}")
@@ -25,6 +38,8 @@ module EngineFixtures
     File.chmod(0o755, File.join(root, binary))
     File.write(File.join(root, ".dragonruby", "stubs", "linux-amd64"), "stub")
     File.write(File.join(root, "mygame", "app", "main.rb"), "def tick(args); end\n")
+    FileUtils.mkdir_p(File.join(root, "mygame", "metadata"))
+    File.write(File.join(root, "mygame", "metadata", "game_metadata.txt"), STOCK_METADATA)
 
     root
   end
