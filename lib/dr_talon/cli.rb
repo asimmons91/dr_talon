@@ -117,6 +117,101 @@ module DrTalon
       end
     end
 
+    desc "install", "Install the pinned engine (if missing) and the dependencies in dependencies.rb"
+    long_desc <<~DESC
+      Run after cloning a project. Installs the engine pinned in .dragonruby-version
+      if it isn't installed yet, then vendors every dependency in the game
+      directory's dependencies.rb at its locked version. Dependencies without a
+      lock yet are resolved and locked.
+
+      Vendored files edited since talon installed them stop the install unless
+      you pass --force.
+    DESC
+    method_option :force, type: :boolean, default: false, desc: "Replace or delete locally modified vendored files"
+    def install
+      project = with_errors { Project.locate }
+      with_errors do
+        engine = install_pinned_engine(project)
+        say "Installed engine #{engine.id}" if engine
+      end
+      run_dependency_install(project)
+    end
+
+    desc "update [NAMES...]", "Re-resolve dependencies (all, or the named ones) and install the new versions"
+    method_option :force, type: :boolean, default: false, desc: "Replace locally modified vendored files"
+    def update(*names)
+      run_dependency_install(with_errors { Project.locate }, update: names.empty? || names)
+    end
+
+    desc "add SOURCE", "Add a dependency to dependencies.rb and install it"
+    long_desc <<~DESC
+      SOURCE is one of:
+
+        github:OWNER/REPO   a GitHub repository (downloaded as a tarball)
+        git:URL             any git repository
+        url:URL             a single file
+        path:DIR            a local file or directory, copied on every install
+
+      Examples:
+
+        talon add github:asimmons91/talon --path lib
+        talon add github:someone/tweens --ref v1.2.0 --as tweens
+        talon add url:https://example.com/easing.rb
+
+      The files are vendored into vendor/NAME in the game directory.
+    DESC
+    method_option :path, type: :string, desc: "File or directory inside the repository to vendor (default: all of it)"
+    method_option :ref, type: :string, desc: "Branch, tag or full commit SHA (default: the default branch)"
+    method_option :as, type: :string, desc: "Name, and directory under vendor/ (default: from the source)"
+    def add(source)
+      project = with_errors { Project.locate }
+      manifest = with_errors { Deps::Manifest.for(project) }
+      original = File.file?(manifest.path) ? File.read(manifest.path) : nil
+      kind, value = with_errors { Deps.parse_source(source) }
+      line = Deps.declaration(kind, value, path: options[:path], ref: options[:ref], as: options[:as])
+
+      begin
+        with_errors { manifest.add(line) }
+        say_status :add, "#{relative_to_root(project, manifest.path)}: #{line}"
+        run_dependency_install(project)
+      rescue Thor::Error, SystemExit
+        original ? File.write(manifest.path, original) : FileUtils.rm_f(manifest.path)
+        raise
+      end
+
+      dependency = Deps::Manifest.for(project).dependencies.last
+      hint = Deps.require_hint(project, dependency)
+      say "\nLoad it from your game with:\n  #{hint}" if hint
+    end
+
+    desc "remove NAME", "Remove a dependency from dependencies.rb and delete its vendored files"
+    method_option :force, type: :boolean, default: false, desc: "Delete the files even if they were modified"
+    def remove(name)
+      project = with_errors { Project.locate }
+      manifest = with_errors { Deps::Manifest.for(project) }
+      dependency = manifest.find(name) || raise(Thor::Error, "No dependency named #{name} in #{Deps::Manifest::FILE}.")
+
+      with_errors { manifest.remove(dependency) }
+      say_status :remove, "#{relative_to_root(project, manifest.path)}: #{dependency.name}", :red
+      run_dependency_install(project)
+    end
+
+    desc "outdated", "List dependencies whose branch, tag or URL now points at something newer"
+    def outdated
+      project = with_errors { Project.locate }
+      rows = with_errors { Deps::Installer.new(project).outdated }
+
+      if rows.empty?
+        say "All dependencies are up to date."
+      else
+        table = rows.map do |row|
+          [row[:dependency].name, short(row[:locked]) || "(not locked)", short(row[:latest]), row[:dependency].ref || "default branch"]
+        end
+        print_table([%w[NAME LOCKED LATEST REF], *table])
+        say "\nRun `talon update NAME` to install the latest."
+      end
+    end
+
     desc "doctor", "Check this project's engine, game and metadata"
     def doctor
       project = Project.locate
@@ -149,6 +244,55 @@ module DrTalon
         project = with_errors { Project.locate }
         argv = with_errors { yield Runner.new(project), project }
         Runner.exec_process(argv, chdir: project.root)
+      end
+
+      def install_pinned_engine(project)
+        pin = project.pin or return nil
+        installation = DrTalon::Engine::Store.new(Paths.new.engines_dir).find_native(pin)
+        materializer = DrTalon::Engine::Materializer.new(project)
+        return nil if materializer.manifest&.engine == installation.id
+
+        materializer.install(installation)
+        DrTalon::Engine::GitIgnore.refresh(project.path(".gitignore"), materializer.manifest.files)
+        installation
+      end
+
+      def run_dependency_install(project, update: nil)
+        manifest = with_errors { Deps::Manifest.for(project) }
+        unless manifest.exist?
+          say "No #{Deps::Manifest::FILE} in #{relative_to_root(project, project.game_dir)}/; add a dependency with `talon add`."
+          return
+        end
+        if manifest.foodchain_locks
+          say "Found Foodchain's ETag locks; talon re-resolves those dependencies and locks them to commits.", :yellow
+        end
+
+        changes = with_errors { Deps::Installer.new(project, force: options[:force]).install(update: update) }
+        changes.each { |change| say_change(change) }
+        say "No dependencies in #{Deps::Manifest::FILE}." if changes.empty?
+      end
+
+      def say_change(change)
+        source = change.dependency && "#{change.dependency.key} @ #{short(change.commit) || "local"}"
+        case change.action
+        when :installed then say_status :install, "#{change.name} (#{source})"
+        when :updated then say_status :update, "#{change.name} #{short(change.previous) || "-"} → #{short(change.commit) || "local"}"
+        when :unchanged then say_status :using, "#{change.name} (#{source})", :blue
+        when :restored then say_status :restore, "#{change.name} (#{source}); local changes replaced", :yellow
+        when :removed then say_status :remove, change.name, :red
+        when :kept then say_status :kept, "#{change.name}: no longer declared, but modified locally; delete it yourself", :yellow
+        end
+      end
+
+      # 7 characters of a commit, or the first 8 hex digits of a sha256.
+      def short(commit)
+        return nil unless commit
+
+        commit.start_with?("sha256:") ? commit[0, 15] : commit[0, 7]
+      end
+
+      def relative_to_root(project, path)
+        path.delete_prefix("#{project.root}/")
       end
 
       def print_test_report(file, report)

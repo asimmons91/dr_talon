@@ -15,3 +15,8 @@
 - `talon build`: `dragonruby-publish --only-package`, with a warning when `game_metadata.txt` is incomplete
 - `talon serve [DIR]`: serves the newest HTML5 build with `dragonruby-httpd` (`--port`)
 - `talon clean`: deletes `builds/`, `logs/`, `tmp/` and `errors/`
+- Dependencies are declared in the game directory's `dependencies.rb`, using a Foodchain-compatible DSL (`github`, `git`, `url`, `path`). They're vendored into `vendor/` and locked below `__END__` to commit SHAs (or content digests for URLs), each with a checksum of the vendored files
+- `talon add SOURCE` (`github:owner/repo`, `git:URL`, `url:URL`, `path:DIR`; `--path`, `--ref`, `--as`), `talon remove NAME`, `talon update [NAMES]` and `talon outdated`
+- `talon install`: installs the pinned engine if it's missing, then the locked dependencies. Locally modified vendored files stop it unless you pass `--force`. Foodchain's ETag locks are replaced
+- GitHub dependencies download a single tarball at the resolved commit; refs are resolved with `git ls-remote`
+- `talon doctor` checks that dependencies are installed and unmodified

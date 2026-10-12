@@ -234,6 +234,135 @@ module DrTalon
     def clean: () -> Array[String]
   end
 
+  module Deps
+    class FetchError < Error
+    end
+
+    class ManifestError < Error
+    end
+
+    class ModifiedError < Error
+    end
+
+    def self.parse_source: (String source) -> [Symbol, String]
+    def self.declaration: (Symbol kind, String value, ?path: String?, ?ref: String?, ?as: String?) -> String
+    def self.require_hint: (Project project, Dependency dependency) -> String?
+
+    class HTTP
+      MAX_REDIRECTS: Integer
+
+      def get: (String url) -> String
+    end
+
+    class Git
+      FULL_SHA: Regexp
+
+      def resolve: (String url, String? ref) -> String
+      def checkout: (String url, String commit, String dir) -> void
+    end
+
+    module Tree
+      def self.checksum: (String path) -> String?
+      def self.copy_subpath: (String root, String? subpath, String target) -> void
+      def self.untar: (String data, String dir, ?strip: Integer) -> void
+    end
+
+    class Context < Data
+      attr_reader http: HTTP
+      attr_reader git: Git
+      attr_reader github_url: String
+      attr_reader codeload_url: String
+
+      def self.default: () -> Context
+    end
+
+    class Dependency
+      VENDOR: String
+
+      attr_reader name: String
+      attr_reader destination: String
+      attr_reader ref: String?
+      attr_reader line: Integer?
+
+      def initialize: (?name: String?, ?destination: String?, ?ref: String?, ?line: Integer?) -> void
+      def key: () -> String
+      def lockable?: () -> bool
+      def resolve: (Context context) -> String?
+      def fetch: (Context context, String? commit, String target) -> void
+    end
+
+    class GitHubDependency < Dependency
+      attr_reader owner: String
+      attr_reader repo: String
+      attr_reader subpath: String
+    end
+
+    class GitDependency < Dependency
+      attr_reader url: String
+      attr_reader subpath: String
+    end
+
+    class URLDependency < Dependency
+      attr_reader url: String
+    end
+
+    class PathDependency < Dependency
+      attr_reader path: String
+    end
+
+    class Lock < Data
+      attr_reader key: String
+      attr_reader ref: String?
+      attr_reader destination: String
+      attr_reader commit: String?
+      attr_reader checksum: String?
+
+      def self.parse: (String line) -> Lock?
+      def to_line: () -> String
+    end
+
+    class Manifest
+      FILE: String
+      SEPARATOR: Regexp
+      LOCK_HEADER: String
+
+      attr_reader path: String
+      attr_reader config: String
+      attr_reader dependencies: Array[Dependency]
+      attr_reader locks: Array[Lock]
+      attr_reader foodchain_locks: bool
+
+      def self.for: (Project project) -> Manifest
+      def initialize: (String path) -> void
+      def exist?: () -> bool
+      def find: (String name) -> Dependency?
+      def write_locks: (Array[Lock] locks) -> void
+      def add: (String line) -> void
+      def remove: (Dependency dependency) -> void
+    end
+
+    class DSL
+      METHODS: Array[String]
+
+      def self.evaluate: (String source, String file) -> Array[Dependency]
+    end
+
+    class Installer
+      class Change < Data
+        attr_reader name: String
+        attr_reader action: (:installed | :updated | :unchanged | :restored | :removed | :kept)
+        attr_reader dependency: Dependency?
+        attr_reader commit: String?
+        attr_reader previous: String?
+      end
+
+      def initialize: (Project project, ?context: Context, ?force: bool) -> void
+      def install: (?update: (Array[String] | true)?) -> Array[Change]
+      def outdated: () -> Array[Hash[Symbol, untyped]]
+      def problems: () -> Array[Hash[Symbol, untyped]]
+    end
+  end
+
   module Generators
     class NewProject < Thor::Group
       TEMPLATES: Array[String]
@@ -260,6 +389,11 @@ module DrTalon
     def build: (*String args) -> void
     def serve: (?String? dir) -> void
     def clean: () -> void
+    def install: () -> void
+    def update: (*String names) -> void
+    def add: (String source) -> void
+    def remove: (String name) -> void
+    def outdated: () -> void
     def doctor: () -> void
 
     class Engine < Thor

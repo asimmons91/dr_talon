@@ -2,7 +2,7 @@
 
 A Rails-style command line tool for [DragonRuby Game Toolkit](https://dragonruby.org). It manages engine versions, scaffolds new games, and manages DragonRuby dependencies.
 
-> **Status:** early development. Engine caching, per-project pinning, `talon new` and the run/test/build commands work; dependencies are next. See [PLAN.md](PLAN.md) for the design and roadmap.
+> **Status:** early development. Engines, projects, the run/test/build commands and dependencies work; Pro/Indie downloads and Talon generators are next. See [PLAN.md](PLAN.md) for the design and roadmap.
 
 ## Installation
 
@@ -44,6 +44,38 @@ talon clean               # delete builds/, logs/, tmp/, errors/
 ```
 
 DragonRuby's test runner always exits 0, so `talon test` reads its output instead. It prints each file's result and the details of any failure. It exits non-zero if a test fails, a file doesn't load, a file has no tests, or a run passes `--timeout` (default 120 seconds). Tests run headless by default using SDL's dummy video and audio drivers, so no window opens and they work in CI. Pass `--no-headless` for tests that need real rendering.
+
+### Dependencies
+
+DragonRuby doesn't load gems, so libraries are vendored into the game: their files are copied into `vendor/` inside the game directory and committed with it.
+
+```bash
+talon add github:asimmons91/talon --path lib       # vendor/talon, prints the require line
+talon add github:someone/tweens --ref v1.2.0 --as tweens
+talon add url:https://example.com/easing.rb
+talon add path:../my_lib/lib                       # a local library, copied on every install
+talon install                                      # after cloning: engine + locked dependencies
+talon update [NAME...]                             # move to the newest commit of each ref
+talon outdated
+talon remove tweens
+```
+
+They're declared in `dependencies.rb` in the game directory (`mygame/` for games). The format is compatible with [Foodchain](https://github.com/pvande/foodchain), so existing files keep working:
+
+```ruby
+github "asimmons91/talon", path: "lib", ref: "main", as: "talon"
+github :asimmons91, :talon, "lib", destination: "vendor/talon"   # Foodchain style
+git "https://codeberg.org/someone/lib.git", path: "src", ref: "v2"
+url "https://example.com/easing.rb"
+path "../my_lib/lib"
+
+__END__
+
+# The lines below pin the versions of your installed dependencies.
+...
+```
+
+talon owns everything below `__END__`: one tab-separated line per dependency with its key, ref, destination, locked commit (or a SHA-256 for `url`), and a checksum of the vendored files. `talon install` reproduces exactly those versions. If you edit a vendored file, talon notices and won't overwrite it unless you pass `--force`. GitHub dependencies resolve refs with `git ls-remote` and download one tarball per dependency, so they don't use up the GitHub API rate limit.
 
 ### Configuration
 

@@ -6,6 +6,7 @@ require "dr_talon"
 require "fileutils"
 require "tmpdir"
 require "minitest/autorun"
+require "open3"
 
 # Builds tiny stand-ins for DragonRuby distributions, with the files talon
 # inspects and an executable "binary", so tests never need the real engine.
@@ -101,5 +102,74 @@ module EngineFixtures
   # @return [String] the contents of a real DragonRuby output fixture
   def dragonruby_output(name)
     File.read(File.join(__dir__, "fixtures", "dragonruby", "#{name}.log"))
+  end
+end
+
+# Local git repositories standing in for GitHub and other remotes, plus a
+# fake HTTP client that serves GitHub-style tarballs and plain files.
+module DepsFixtures
+  GIT_ENV = {
+    "GIT_AUTHOR_NAME" => "Test", "GIT_AUTHOR_EMAIL" => "test@example.com",
+    "GIT_COMMITTER_NAME" => "Test", "GIT_COMMITTER_EMAIL" => "test@example.com",
+    "GIT_CONFIG_GLOBAL" => File::NULL, "GIT_CONFIG_SYSTEM" => File::NULL
+  }.freeze
+
+  # Serves "#{codeload}/OWNER/REPO/tar.gz/SHA" from the matching fixture
+  # repository and any other URL from +files+; counts requests.
+  class FakeHTTP
+    attr_reader :requests, :files
+
+    def initialize(remotes)
+      @remotes = remotes
+      @files = {}
+      @requests = []
+    end
+
+    def get(url)
+      @requests << url
+      if (match = %r{\Afake-codeload://([^/]+)/([^/]+)/tar\.gz/(\h{40})\z}.match(url))
+        owner, repo, sha = match.captures
+        out, status = Open3.capture2("git", "-C", File.join(@remotes, owner, "#{repo}.git"),
+          "archive", "--format=tar.gz", "--prefix=#{repo}-#{sha}/", sha, binmode: true)
+        raise DrTalon::Deps::FetchError, "no such commit" unless status.success?
+
+        out
+      else
+        @files.fetch(url) { raise DrTalon::Deps::FetchError, "GET #{url} returned 404 Not Found" }
+      end
+    end
+  end
+
+  def git!(dir, *args)
+    out, err, status = Open3.capture3(GIT_ENV, "git", "-C", dir, *args)
+    raise "git #{args.join(" ")} failed: #{err}" unless status.success?
+
+    out.strip
+  end
+
+  # Creates (or adds a commit to) a repository at remotes/OWNER/REPO.git.
+  #
+  # @return [String] the new commit's SHA
+  def commit_to(remotes, owner, repo, files, tag: nil)
+    path = File.join(remotes, owner, "#{repo}.git")
+    unless File.directory?(path)
+      FileUtils.mkdir_p(path)
+      git!(path, "init", "--quiet", "--initial-branch=main")
+    end
+    files.each do |relative, content|
+      FileUtils.mkdir_p(File.dirname(File.join(path, relative)))
+      File.write(File.join(path, relative), content)
+    end
+    git!(path, "add", "--all")
+    git!(path, "commit", "--quiet", "--message", "commit")
+    git!(path, "tag", "--annotate", tag, "--message", tag) if tag
+    git!(path, "rev-parse", "HEAD")
+  end
+
+  def deps_context(remotes)
+    DrTalon::Deps::Context.new(
+      http: FakeHTTP.new(remotes), git: DrTalon::Deps::Git.new,
+      github_url: "file://#{remotes}", codeload_url: "fake-codeload:/"
+    )
   end
 end

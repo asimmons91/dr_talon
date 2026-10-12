@@ -49,6 +49,7 @@ module DrTalon
       @checks = []
       check_game
       check_engine
+      check_dependencies
       check_metadata
       @checks
     end
@@ -125,6 +126,25 @@ module DrTalon
       else
         ok "#{manifest.engine} is installed (#{manifest.files.size} files)"
       end
+    end
+
+    def check_dependencies
+      manifest = Deps::Manifest.for(@project)
+      return unless manifest.exist?
+
+      count = manifest.dependencies.size
+      problems = Deps::Installer.new(@project).problems
+      problems.each do |entry|
+        dependency = entry[:dependency]
+        case entry[:problem]
+        when :unlocked then error "#{dependency.name} isn't installed or locked yet. Run `talon install`."
+        when :missing then error "#{dependency.name} is locked but #{dependency.destination} is missing. Run `talon install`."
+        when :modified then warning "#{dependency.destination} has local changes; `talon install --force` restores it"
+        end
+      end
+      ok "#{count} dependenc#{(count == 1) ? "y" : "ies"} installed" if problems.empty?
+    rescue Error => e
+      error e.message
     end
 
     def check_metadata
