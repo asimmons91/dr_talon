@@ -1,0 +1,15 @@
+require "<%= talon_require %>"
+require "<%= file_require %>"
+
+class <%= class_name %>Tests
+  class TestScene < Talon::Scene; end
+
+  def test_<%= file_name %>_updates_and_draws(args, assert)
+    scene = TestScene.new
+    scene.args = args
+    go = scene.spawn(:subject) { |g| g.add(<%= class_name %>) }
+    scene.tick
+
+    assert.true! go[<%= class_name %>].is_a?(<%= class_name %>), "the component should be attached"
+  end
+end

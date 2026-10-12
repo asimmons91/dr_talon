@@ -1,0 +1,8 @@
+# The first scene. Add more with `talon generate scene NAME` and switch with
+#   game.change_scene(OtherScene.new)
+class Title < Talon::Scene
+  on_enter do
+    spawn(:logo, x: 640, y: 360, w: 128, h: 128, anchor_x: 0.5, anchor_y: 0.5,
+          path: "sprites/square/blue.png") { |go| go.add(Spin) }
+  end
+end

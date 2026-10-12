@@ -51,9 +51,11 @@ Modeled on `rails` + `rbenv`/`mise` + `bundler`.
 talon new my_game [--engine 7.23] [--template bare|talon|<git-url>|<path>]
                   [--layout full|game-only] [--lib]
                   [--skip-git] [--skip-bundle] [--skip-deps]
-talon generate scene Title          # Talon-framework generators (rails g style);
-talon generate game_object Player   # only available when the project's
-talon generate component Health     # dependencies.rb includes Talon
+talon generate scene Title          # Talon-framework generators (rails g style, alias
+talon generate prefab Player        # `talon g`); only available when the project's
+talon generate component Health     # dependencies.rb includes Talon. Talon game objects
+                                    # aren't subclassed, so "game_object" became "prefab"
+                                    # (a callable passed to Scene#spawn).
 ```
 
 ### Engine management
@@ -183,7 +185,10 @@ then infers layout from whether `mygame/app/main.rb` or `app/main.rb` exists.
     the gem, so DragonRuby's sample sprites/metadata aren't redistributed
     under the gem's MIT license.
   - `talon`: `bare` + talon dependency, `solargraph-dr_talon`, a starter
-    `Talon::Game` + `Scene` in `main.rb`. Opt-in only.
+    `Talon::Game` + `Scene` in `main.rb`. Opt-in only. `main.rb` has a
+    marked requires block that `talon generate` keeps (components, then
+    prefabs, then scenes); generated tests require Talon from wherever the
+    project vendors it.
   - `lib`: game-only layout with `lib/<name>.rb`, `lib/<name>/version.rb`,
     `app/main.rb` (demo), `test/test_helper.rb` and a DragonRuby test.
     File names use underscores (`my-lib` → `lib/my_lib.rb`, `MyLib`).

@@ -18,4 +18,7 @@ type_checker:
 require_paths: []
 plugins:
   - solargraph-dragonruby
+<% if talon? -%>
+  - solargraph-dr_talon
+<% end -%>
 max_files: 5000

@@ -1,0 +1,16 @@
+require "<%= talon_require %>"
+require "app/components/spin.rb"
+require "app/scenes/title.rb"
+
+class TitleTests
+  def test_title_spins_the_logo(args, assert)
+    scene = Title.new
+    game = Talon::Game.new(scene)
+    game.args = args
+    3.times { game.tick }
+
+    logo = scene.find { |go| go.name == :logo }
+    assert.true! logo, "the title scene should spawn a logo"
+    assert.equal! logo.angle, 3
+  end
+end

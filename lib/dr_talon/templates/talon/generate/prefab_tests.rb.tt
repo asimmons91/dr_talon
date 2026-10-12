@@ -1,0 +1,15 @@
+require "<%= talon_require %>"
+require "<%= file_require %>"
+
+class <%= class_name %>Tests
+  class TestScene < Talon::Scene; end
+
+  def test_<%= file_name %>_spawns(args, assert)
+    scene = TestScene.new
+    scene.args = args
+    go = scene.spawn(:<%= file_name %>, <%= class_name %>, x: 10, y: 20)
+    scene.tick
+
+    assert.equal! [ go.x, go.y ], [ 10, 20 ]
+  end
+end

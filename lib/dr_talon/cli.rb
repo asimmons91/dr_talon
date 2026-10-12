@@ -2,7 +2,9 @@
 
 require "thor"
 require_relative "cli/engine"
+require_relative "cli/generate"
 require_relative "generators/new_project"
+require_relative "generators/talon_code"
 
 module DrTalon
   # Entry point for the +talon+ executable.
@@ -229,6 +231,10 @@ module DrTalon
 
     desc "engine SUBCOMMAND", "Manage cached DragonRuby engines"
     subcommand "engine", Engine
+
+    map "g" => :generate
+    desc "generate KIND NAME", "Generate Talon framework code: scene, component or prefab (alias: g)"
+    subcommand "generate", Generate
 
     no_commands do
       def with_errors

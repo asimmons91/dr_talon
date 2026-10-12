@@ -5,3 +5,6 @@ source "https://rubygems.org"
 gem "rubocop-rails-omakase", require: false
 gem "solargraph", require: false
 gem "solargraph-dragonruby", require: false
+<% if talon? -%>
+gem "solargraph-dr_talon", require: false
+<% end -%>

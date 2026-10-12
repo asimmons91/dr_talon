@@ -2,9 +2,11 @@
 
 require "test_helper"
 require "stringio"
+require "minitest/mock"
 
 class TestCLINew < Minitest::Test
   include EngineFixtures
+  include DepsFixtures
 
   def setup
     @dir = File.realpath(Dir.mktmpdir)
@@ -102,6 +104,47 @@ class TestCLINew < Minitest::Test
     new_project_with_output("my_game", stdin: "n\n")
 
     assert_includes read(File.join(@dir, "my_game"), ".gitignore"), DrTalon::Engine::GitIgnore::BEGIN_MARKER
+  end
+
+  def test_talon_template
+    remotes = File.join(@dir, "remotes")
+    commit_to(remotes, "asimmons91", "talon", {"lib/talon.rb" => "module Talon; end"})
+
+    root = DrTalon::Deps::Context.stub(:default, deps_context(remotes)) { new_project("space", "--template", "talon", "--no-commit-engine") }
+
+    main = read(root, "mygame", "app", "main.rb")
+    assert main.start_with?(%(require "vendor/talon/talon.rb"\n))
+    assert_includes main, %(#{DrTalon::TalonFramework::BEGIN_MARKER}\nrequire "app/components/spin.rb"\nrequire "app/scenes/title.rb"\n)
+    assert_includes main, "Talon::Game.new(Title.new)"
+    assert_includes read(root, "mygame", "app", "scenes", "title.rb"), "class Title < Talon::Scene"
+    assert_includes read(root, "mygame", "app", "components", "spin.rb"), "class Spin < Talon::Component"
+    assert_includes read(root, "mygame", "tests", "scenes", "title_tests.rb"), "class TitleTests"
+    assert_includes read(root, "mygame", "dependencies.rb"), %(github "asimmons91/talon", path: "lib")
+    assert_equal "module Talon; end", read(root, "mygame", "vendor", "talon", "talon.rb")
+    assert_includes read(root, "Gemfile"), %(gem "solargraph-dr_talon")
+    assert_includes read(root, ".solargraph.yml"), "- solargraph-dr_talon"
+    assert_includes read(root, "README.md"), "built on [Talon]"
+    assert DrTalon::TalonFramework.used_by?(DrTalon::Project.new(root))
+  end
+
+  def test_talon_template_survives_a_failed_vendor
+    out = nil
+    root = DrTalon::Deps::Context.stub(:default, deps_context(File.join(@dir, "no-remotes"))) do
+      out, _err = new_project_with_output("space", "--template", "talon", "--no-commit-engine")
+      File.join(@dir, "space")
+    end
+
+    assert_match(/vendoring Talon failed .*talon install/, out)
+    assert File.file?(File.join(root, "mygame", "app", "scenes", "title.rb"))
+  end
+
+  def test_talon_template_skip_deps_and_plain_games_without_talon
+    root = new_project("space", "--template", "talon", "--no-commit-engine", "--skip-deps")
+    refute File.exist?(File.join(root, "mygame", "vendor", "talon"))
+
+    plain = new_project("plain", "--no-commit-engine")
+    refute_includes read(plain, "Gemfile"), "solargraph-dr_talon"
+    refute File.exist?(File.join(plain, "mygame", "dependencies.rb"))
   end
 
   def test_library_layout

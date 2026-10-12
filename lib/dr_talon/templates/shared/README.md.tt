@@ -1,6 +1,8 @@
 # <%= title %>
 
-<% if layout == :full -%>
+<% if talon? -%>
+A [DragonRuby](https://dragonruby.org) game built on [Talon](https://github.com/<%= talon_repository %>).
+<% elsif layout == :full -%>
 A [DragonRuby](https://dragonruby.org) game.
 <% else -%>
 A [DragonRuby](https://dragonruby.org) library.
@@ -33,6 +35,9 @@ talon run      # ./dragonruby mygame
 talon test     # *_tests.rb in mygame/tests/
 talon build    # package every platform into builds/
 talon serve    # play the HTML5 build at http://localhost:8080/
+<% if talon? -%>
+talon generate scene|component|prefab NAME
+<% end -%>
 <% else -%>
 talon run      # ./dragonruby .
 talon test     # ./dragonruby . --test for each test/*_tests.rb

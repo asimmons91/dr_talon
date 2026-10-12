@@ -435,7 +435,38 @@ module DrTalon
     end
   end
 
+  module TalonFramework
+    REPOSITORY: String
+    GITHUB_KEY: Regexp
+    REQUIRE: String
+    BEGIN_MARKER: String
+    END_MARKER: String
+    BLOCK: Regexp
+    KIND_ORDER: Array[String]
+
+    class NotUsed < Error
+    end
+
+    def self.dependency: (Project project) -> Deps::Dependency?
+    def self.used_by?: (Project project) -> bool
+    def self.require_path: (Project project) -> String
+    def self.require_used!: (Project project) -> void
+    def self.add_require: (String main_rb, String line) -> (:added | :present | :no_block)
+    def self.names: (String name) -> [String, String]
+  end
+
   module Generators
+    class TalonCode < Thor::Group
+      KINDS: Array[String]
+
+      def self.source_root: () -> String
+      def class_name: () -> String
+      def file_name: () -> String
+      def code_path: () -> String
+      def test_path: () -> String
+      def talon_require: () -> String
+    end
+
     class NewProject < Thor::Group
       TEMPLATES: Array[String]
       NAME_PATTERN: Regexp
@@ -447,6 +478,8 @@ module DrTalon
       def title: () -> String
       def template_name: () -> String
       def layout: () -> (:full | :game_only)
+      def talon?: () -> bool
+      def tooling_template: () -> String
       def engine: () -> Engine::Installation
       def commit_engine?: () -> bool
     end
@@ -467,6 +500,13 @@ module DrTalon
     def remove: (String name) -> void
     def outdated: () -> void
     def doctor: () -> void
+
+    class Generate < Thor
+      def self.exit_on_failure?: () -> bool
+      def scene: (String name) -> void
+      def component: (String name) -> void
+      def prefab: (String name) -> void
+    end
 
     class Engine < Thor
       def self.exit_on_failure?: () -> bool

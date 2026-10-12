@@ -1,0 +1,11 @@
+# A prefab: a reusable game object setup. Spawn one with
+#   spawn(:<%= file_name %>, <%= class_name %>, x: 640, y: 360)
+module <%= class_name %>
+  # @param go [Talon::GameObject] the object being spawned
+  def self.call(go)
+    go.w ||= 32
+    go.h ||= 32
+    go.path ||= "sprites/square/blue.png"
+    # go.add(SomeComponent, speed: 2)
+  end
+end

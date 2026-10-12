@@ -1,0 +1,3 @@
+# DragonRuby dependencies, vendored into vendor/ by `talon install`.
+# Add more with `talon add github:owner/repo`.
+github "<%= talon_repository %>", path: "lib"

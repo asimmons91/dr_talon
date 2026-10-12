@@ -2,7 +2,7 @@
 
 A Rails-style command line tool for [DragonRuby Game Toolkit](https://dragonruby.org). It manages engine versions, scaffolds new games, and manages DragonRuby dependencies.
 
-> **Status:** early development. Engines (including downloads), projects, the run/test/build commands and dependencies work; Talon generators are next. See [PLAN.md](PLAN.md) for the design and roadmap.
+> **Status:** early development; every planned command works. A first release to RubyGems is next. See [PLAN.md](PLAN.md) for the design and roadmap.
 
 ## Installation
 
@@ -77,12 +77,25 @@ __END__
 
 talon owns everything below `__END__`: one tab-separated line per dependency with its key, ref, destination, locked commit (or a SHA-256 for `url`), and a checksum of the vendored files. `talon install` reproduces exactly those versions. If you edit a vendored file, talon notices and won't overwrite it unless you pass `--force`. GitHub dependencies resolve refs with `git ls-remote` and download one tarball per dependency, so they don't use up the GitHub API rate limit.
 
+### Talon games
+
+[Talon](https://github.com/asimmons91/talon) is a scene, game object and component framework for DragonRuby. talon itself works with any DragonRuby game; Talon support is opt-in.
+
+```bash
+talon new my_game --template talon     # Talon vendored, a Title scene, a Spin component and a test
+talon generate scene MainMenu          # app/scenes/main_menu.rb + tests/scenes/main_menu_tests.rb
+talon generate component Health        # app/components/health.rb + test
+talon g prefab EnemyShip               # app/prefabs/enemy_ship.rb + test (spawn(:ship, EnemyShip))
+```
+
+DragonRuby only loads files that are explicitly required, so generators add each new file's `require` to a marked section of `app/main.rb`, ordered components, then prefabs, then scenes. If that section is missing, they print the line for you to paste. Generators only run in projects whose `dependencies.rb` includes Talon. To use them in an existing game, run `talon add github:asimmons91/talon --path lib` first. Set `default_template: talon` in your config to make it the default.
+
 ### Configuration
 
 `~/.config/dr_talon/config.yml` (see the table below for other platforms):
 
 ```yaml
-default_template: bare      # or lib
+default_template: bare      # or talon, or lib
 dev_id: my_itchio_username  # devid in game_metadata.txt
 dev_title: My Name          # devtitle in game_metadata.txt
 ```

@@ -1,0 +1,13 @@
+require "<%= talon_require %>"
+require "<%= file_require %>"
+
+class <%= class_name %>Tests
+  def test_<%= file_name %>_is_entered_by_the_game(args, assert)
+    scene = <%= class_name %>.new
+    game = Talon::Game.new(scene)
+    game.args = args
+    game.tick
+
+    assert.equal! scene.game, game
+  end
+end

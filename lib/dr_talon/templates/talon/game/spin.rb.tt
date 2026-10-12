@@ -1,0 +1,7 @@
+# Turns its game object and draws it as a sprite.
+class Spin < Talon::Component
+  prop :speed, default: 1
+
+  on_update { go.angle = (go.angle || 0) + speed }
+  on_draw { outputs.sprites << go }
+end

@@ -1,0 +1,9 @@
+require "<%= talon_require %>"
+
+<%= requires_block %>
+
+def tick(args)
+  $game ||= Talon::Game.new(Title.new)
+  $game.args = args
+  $game.tick
+end

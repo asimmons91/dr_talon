@@ -57,7 +57,8 @@ module DrTalon
 
       def run(*args)
         out, err, status = Open3.capture3("git", *args)
-        raise FetchError, "git #{args.first} failed: #{err.strip}" unless status.success?
+        # git's first line says what went wrong; the rest is generic advice.
+        raise FetchError, "git #{args.first} failed: #{err.lines.map(&:strip).find { |l| !l.empty? }}" unless status.success?
 
         out
       rescue Errno::ENOENT

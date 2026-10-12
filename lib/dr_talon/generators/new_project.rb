@@ -12,12 +12,13 @@ module DrTalon
     class NewProject < Thor::Group
       include Thor::Actions
 
-      TEMPLATES = %w[bare lib].freeze
+      TEMPLATES = %w[bare lib talon].freeze
       NAME_PATTERN = /\A[A-Za-z][A-Za-z0-9_-]*\z/
 
       argument :path, type: :string, desc: "Directory to create; its name is the project name"
 
-      class_option :template, type: :string, desc: "bare (a game) or lib (a library); default from config.yml, else bare"
+      class_option :template, type: :string,
+        desc: "bare (a game), talon (a game on the Talon framework) or lib (a library); default from config.yml, else bare"
       class_option :lib, type: :boolean, default: false, desc: "Shorthand for --template lib"
       class_option :engine, type: :string, desc: "Engine to pin, e.g. 7.23-pro (default: the newest cached)"
       class_option :commit_engine, type: :boolean,
@@ -27,6 +28,7 @@ module DrTalon
       class_option :dev_title, type: :string, desc: "Developer display name for game_metadata.txt (default: from config.yml)"
       class_option :skip_git, type: :boolean, default: false, desc: "Don't run git init"
       class_option :skip_bundle, type: :boolean, default: false, desc: "Don't run bundle install"
+      class_option :skip_deps, type: :boolean, default: false, desc: "Don't vendor dependencies (the talon template's Talon)"
 
       def self.source_root
         File.expand_path("../templates", __dir__)
@@ -52,6 +54,7 @@ module DrTalon
 
       def create_game
         (layout == :full) ? copy_stock_game : create_library
+        create_talon_game if talon?
       end
 
       def create_tooling
@@ -59,8 +62,8 @@ module DrTalon
         template "shared/editorconfig.tt", ".editorconfig"
         template "shared/gitignore.tt", ".gitignore"
         template "shared/README.md.tt", "README.md"
-        template "#{template_name}/rubocop.yml.tt", ".rubocop.yml"
-        template "#{template_name}/solargraph.yml.tt", ".solargraph.yml"
+        template "#{tooling_template}/rubocop.yml.tt", ".rubocop.yml"
+        template "#{tooling_template}/solargraph.yml.tt", ".solargraph.yml"
       end
 
       def fill_metadata
@@ -97,6 +100,15 @@ module DrTalon
         Engine::GitIgnore.write(File.join(destination_root, ".gitignore"), materializer.manifest.files) unless commit_engine?
       end
 
+      def install_dependencies
+        return unless talon? && !options[:skip_deps]
+
+        changes = Deps::Installer.new(Project.new(destination_root)).install
+        changes.each { |change| say_status :vendor, "#{change.name} (#{change.dependency&.key})" }
+      rescue DrTalon::Error => e
+        say_status :skip, "vendoring Talon failed (#{e.message}); run `talon install` when you're online", :yellow
+      end
+
       def git_init
         return if options[:skip_git]
         return say_status(:skip, "git init (git not found)", :yellow) unless executable?("git")
@@ -122,6 +134,7 @@ module DrTalon
         say "Created #{name} with DragonRuby #{engine.id}.", :green
         say "  cd #{relative}"
         say((layout == :full) ? "  talon run" : "  talon test")
+        say "  talon generate scene NAME" if talon?
         say "  talon doctor"
       end
 
@@ -149,6 +162,28 @@ module DrTalon
 
         def layout
           (template_name == "lib") ? :game_only : :full
+        end
+
+        def talon?
+          template_name == "talon"
+        end
+
+        # The talon template is a bare game plus Talon.
+        def tooling_template
+          talon? ? "bare" : template_name
+        end
+
+        def talon_require
+          TalonFramework::REQUIRE
+        end
+
+        def talon_repository
+          TalonFramework::REPOSITORY
+        end
+
+        def requires_block
+          [TalonFramework::BEGIN_MARKER, %(require "app/components/spin.rb"), %(require "app/scenes/title.rb"),
+            TalonFramework::END_MARKER].join("\n")
         end
 
         def dependencies_hint
@@ -210,6 +245,14 @@ module DrTalon
           end
         end
         say_status :create, "mygame (from #{engine.id})"
+      end
+
+      def create_talon_game
+        template "talon/game/main.rb.tt", "mygame/app/main.rb", force: true
+        template "talon/game/title.rb.tt", "mygame/app/scenes/title.rb"
+        template "talon/game/spin.rb.tt", "mygame/app/components/spin.rb"
+        template "talon/game/title_tests.rb.tt", "mygame/tests/scenes/title_tests.rb"
+        template "talon/game/dependencies.rb.tt", "mygame/dependencies.rb"
       end
 
       def create_library

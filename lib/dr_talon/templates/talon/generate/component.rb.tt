@@ -1,0 +1,19 @@
+# A component: behaviour attached to a game object with go.add(<%= class_name %>).
+class <%= class_name %> < Talon::Component
+  # Props are plain attributes set from go.add(<%= class_name %>, name: value).
+  # prop :speed, default: 1
+
+  # State lives in args.state, so it survives hot reloads.
+  # state :count, default: 0
+
+  on_start do
+  end
+
+  on_update do
+    # Runs every tick. go is the game object; args, inputs and outputs are available.
+  end
+
+  on_draw do
+    # Runs every tick after all updates, e.g. outputs.sprites << go
+  end
+end

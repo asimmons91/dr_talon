@@ -1,0 +1,14 @@
+# A scene: one screen or level of the game. Switch to it with
+#   game.change_scene(<%= class_name %>.new)
+class <%= class_name %> < Talon::Scene
+  # Scene state lives in args.state and is cleared when the scene ends.
+  # state :score, default: 0
+
+  on_enter do
+    # Spawn the scene's game objects, e.g.:
+    # spawn(:player, Player, x: 640, y: 360)
+  end
+
+  on_exit do
+  end
+end
