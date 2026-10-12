@@ -9,7 +9,7 @@ module DrTalon
     # Where sources fetch from; tests swap in local fakes.
     Context = Data.define(:http, :git, :github_url, :codeload_url) do
       def self.default
-        new(http: HTTP.new, git: Git.new, github_url: "https://github.com", codeload_url: "https://codeload.github.com")
+        new(http: DrTalon::HTTP.new, git: Git.new, github_url: "https://github.com", codeload_url: "https://codeload.github.com")
       end
     end
 

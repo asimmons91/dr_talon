@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
+require "fileutils"
 require "thor"
+require "tmpdir"
 
 module DrTalon
   class CLI < Thor
@@ -37,6 +39,58 @@ module DrTalon
         when :replaced then say "Replaced #{installation.id} at #{installation.path}"
         else say "Imported #{installation.id} to #{installation.path}"
         end
+      end
+
+      desc "fetch", "Download the latest engine and add it to the cache"
+      long_desc <<~DESC
+        Downloads the newest DragonRuby release for this machine and imports it.
+
+        Pro and Indie come from dragonruby.org with your account's username and
+        password, taken from DRAGONRUBY_USERNAME and DRAGONRUBY_PASSWORD, from
+        `talon engine login`, or asked for. Standard comes from itch.io with
+        butler (https://itch.io/docs/butler/), after `butler login`.
+
+        The tier defaults to that of your newest cached engine. DragonRuby only
+        offers its latest release, so fetching regularly is how older versions
+        stay available in the cache.
+      DESC
+      method_option :tier, enum: DrTalon::Engine::TIERS, desc: "License tier (default: your newest cached engine's)"
+      method_option :keep_zip, type: :boolean, default: false, desc: "Keep the downloaded zip in talon's cache directory"
+      def fetch
+        tier = options[:tier] || store.latest_native&.tier ||
+          raise(Thor::Error, "Pass --tier #{DrTalon::Engine::TIERS.join("|")} (no cached engine to take it from).")
+
+        result = with_errors { (tier == "standard") ? fetch_with_butler : fetch_from_dragonruby(tier) }
+        installation = result.installation
+
+        if result.status == :unchanged
+          say "#{installation.id} is already cached; it's the latest #{tier} release."
+        else
+          say "Fetched #{installation.id} to #{installation.path}", :green
+          say "Use it in a project with `talon engine use #{installation.version}-#{installation.tier}`."
+        end
+      end
+
+      desc "login", "Save a dragonruby.org login for fetching Pro/Indie engines"
+      long_desc <<~DESC
+        Asks for your dragonruby.org username and password, checks them against
+        the download API, and saves them to credentials.yml in talon's config
+        directory, readable only by you (mode 0600). The password is stored in
+        plain text there; DRAGONRUBY_USERNAME and DRAGONRUBY_PASSWORD are an
+        alternative that stores nothing.
+      DESC
+      method_option :tier, enum: DrTalon::Engine::Fetcher::TIERS, default: "pro", desc: "Tier to check the login against"
+      def login
+        credentials = ask_credentials
+        with_errors { DrTalon::Engine::Fetcher.new.verify(credentials, options[:tier]) }
+        credentials.save(Paths.new.credentials_file)
+        say "Saved the login for #{credentials.username} to #{Paths.new.credentials_file} (mode 600)."
+      end
+
+      desc "logout", "Delete the saved dragonruby.org login"
+      def logout
+        path = Paths.new.credentials_file
+        say DrTalon::Credentials.delete(path) ? "Deleted #{path}." : "No saved login at #{path}."
       end
 
       desc "list", "List cached engines"
@@ -148,6 +202,65 @@ module DrTalon
           pin && store.find_native(pin)
         rescue DrTalon::Error
           nil
+        end
+
+        def fetch_from_dragonruby(tier)
+          credentials = DrTalon::Credentials.lookup || ask_credentials(offer_to_save: true)
+          fetcher = DrTalon::Engine::Fetcher.new
+          zip = begin
+            fetcher.fetch(credentials, tier) { |received, total| show_progress(received, total) }
+          rescue DrTalon::HTTP::Unauthorized
+            source = {env: "DRAGONRUBY_USERNAME/DRAGONRUBY_PASSWORD", file: Paths.new.credentials_file, prompt: "what you typed"}
+            raise DrTalon::Error, "dragonruby.org rejected the login from #{source.fetch(credentials.source)}. " \
+              "Check it, or run `talon engine login`."
+          ensure
+            finish_progress
+          end
+
+          begin
+            DrTalon::Engine::Importer.new(store, tier: tier).import(zip)
+          ensure
+            FileUtils.rm_f(zip) unless options[:keep_zip]
+          end
+        end
+
+        def fetch_with_butler
+          Dir.mktmpdir("talon-butler") do |dir|
+            say "Downloading the latest Standard engine with butler…"
+            DrTalon::Engine::ButlerFetcher.new.fetch(dir)
+            DrTalon::Engine::Importer.new(store, tier: "standard").import(dir)
+          end
+        end
+
+        def ask_credentials(offer_to_save: false)
+          unless $stdin.tty?
+            raise Thor::Error, "No dragonruby.org login. Set #{DrTalon::Credentials::ENV_USERNAME} and " \
+              "#{DrTalon::Credentials::ENV_PASSWORD}, or run `talon engine login` in a terminal."
+          end
+
+          username = ask("dragonruby.org username:").to_s.strip
+          password = ask("dragonruby.org password:", echo: false).to_s
+          say ""
+          raise Thor::Error, "A username and password are needed." if username.empty? || password.empty?
+
+          credentials = DrTalon::Credentials.new(username: username, password: password, source: :prompt)
+          if offer_to_save && yes?("Save this login to #{Paths.new.credentials_file} (mode 600)? [y/N]")
+            credentials.save(Paths.new.credentials_file)
+          end
+          credentials
+        end
+
+        def show_progress(received, total)
+          return unless $stdout.tty?
+
+          @progress_shown = true
+          amount = total ? "#{received * 100 / total}% of #{total / 1_048_576} MB" : "#{received / 1_048_576} MB"
+          print "\rDownloading… #{amount}   "
+        end
+
+        def finish_progress
+          puts if @progress_shown
+          @progress_shown = false
         end
 
         def with_errors

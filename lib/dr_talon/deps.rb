@@ -55,7 +55,6 @@ module DrTalon
   end
 end
 
-require_relative "deps/http"
 require_relative "deps/git"
 require_relative "deps/tree"
 require_relative "deps/dependency"

@@ -20,3 +20,5 @@
 - `talon install`: installs the pinned engine if it's missing, then the locked dependencies. Locally modified vendored files stop it unless you pass `--force`. Foodchain's ETag locks are replaced
 - GitHub dependencies download a single tarball at the resolved commit; refs are resolved with `git ls-remote`
 - `talon doctor` checks that dependencies are installed and unmodified
+- `talon engine fetch [--tier]`: downloads the latest Pro or Indie engine from dragonruby.org (or Standard with itch.io's butler), imports it, and deletes the zip (`--keep-zip` keeps it). The tier defaults to that of your newest cached engine
+- `talon engine login` / `logout`: checks a dragonruby.org login and saves it to `credentials.yml` with mode 0600, or deletes it. `DRAGONRUBY_USERNAME` / `DRAGONRUBY_PASSWORD` take precedence; talon refuses credential files that other users can read

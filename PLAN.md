@@ -127,11 +127,17 @@ per-host-OS but contain all export stubs).
 ### Acquisition
 1. `import`: accept zip or already-unzipped dir; detect version/tier/platform;
    copy into store.
-2. `fetch` (Pro/Indie): GET the API with basic auth → follow returned URL →
-   import. Credentials from `DRAGONRUBY_USERNAME`/`DRAGONRUBY_PASSWORD`, else
-   prompt and offer to save to `~/.config/dr_talon/credentials.yml`
-   (written with mode 0600; refuse to read it if group/world-readable).
-   `talon engine logout` deletes it. **[D5, decided]**
+2. `fetch` (Pro/Indie): GET the API with basic auth (401 = bad login). The
+   answer may be the zip's URL in the body (as DragonRuby's docs show), a
+   redirect, or the zip itself; all are handled, streaming to the cache dir,
+   and auth is never sent to another host. Credentials from
+   `DRAGONRUBY_USERNAME`/`DRAGONRUBY_PASSWORD`, else
+   `~/.config/dr_talon/credentials.yml` (written with mode 0600; refused if
+   group/world-readable), else prompt and offer to save. `talon engine login`
+   verifies against the API before saving; `logout` deletes it.
+   **[D5, decided]** The tier defaults to the newest cached engine's. The zip
+   is deleted after import unless `--keep-zip`. dragonruby.org only has
+   linux (amd64), mac and windows downloads.
 3. `fetch` (Standard): shell out to `butler` if on PATH (offer to download it
    from `broth.itch.ovh`).
 

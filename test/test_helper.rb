@@ -7,6 +7,7 @@ require "fileutils"
 require "tmpdir"
 require "minitest/autorun"
 require "open3"
+require "socket"
 
 # Builds tiny stand-ins for DragonRuby distributions, with the files talon
 # inspects and an executable "binary", so tests never need the real engine.
@@ -171,5 +172,51 @@ module DepsFixtures
       http: FakeHTTP.new(remotes), git: DrTalon::Deps::Git.new,
       github_url: "file://#{remotes}", codeload_url: "fake-codeload:/"
     )
+  end
+end
+
+# A tiny HTTP/1.1 server for HTTP client tests. Routes map a path to a
+# lambda receiving (headers) and returning [status, headers, body].
+class TestServer
+  attr_reader :port, :requests
+
+  def initialize(routes)
+    @routes = routes
+    @requests = []
+    @server = TCPServer.new("127.0.0.1", 0)
+    @port = @server.addr[1]
+    @thread = Thread.new { serve }
+  end
+
+  def url(path, host: "127.0.0.1")
+    "http://#{host}:#{port}#{path}"
+  end
+
+  def stop
+    @thread.kill
+    @server.close
+  end
+
+  private
+
+  def serve
+    loop do
+      client = @server.accept
+      request_line = client.gets.to_s
+      headers = {}
+      while (line = client.gets) && line != "\r\n"
+        name, value = line.split(":", 2)
+        headers[name.downcase] = value.strip
+      end
+      path = request_line.split[1]
+      @requests << [path, headers]
+      status, response_headers, body = @routes.fetch(path, ->(_) { [404, {}, "not found"] }).call(headers)
+      client.write("HTTP/1.1 #{status} X\r\nContent-Length: #{body.bytesize}\r\nConnection: close\r\n")
+      response_headers.each { |name, value| client.write("#{name}: #{value}\r\n") }
+      client.write("\r\n#{body}")
+      client.close
+    end
+  rescue IOError, Errno::EBADF
+    nil
   end
 end

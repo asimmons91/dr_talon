@@ -27,6 +27,43 @@ module DrTalon
     def self.load: (?String path) -> Config
   end
 
+  class HTTP
+    MAX_REDIRECTS: Integer
+
+    class Error < DrTalon::Error
+    end
+
+    class Unauthorized < Error
+    end
+
+    class Auth < Data
+      attr_reader username: String
+      attr_reader password: String
+    end
+
+    def get: (String url, ?auth: Auth?) -> String
+    def download: (String url, String path, ?auth: Auth?) ?{ (Integer received, Integer? total) -> void } -> String
+  end
+
+  class Credentials < Data
+    ENV_USERNAME: String
+    ENV_PASSWORD: String
+
+    class InsecureFile < Error
+    end
+
+    attr_reader username: String
+    attr_reader password: String
+    attr_reader source: (:env | :file | :prompt)
+
+    def self.lookup: (?env: Hash[String, String], ?path: String) -> Credentials?
+    def self.from_env: (?Hash[String, String] env) -> Credentials?
+    def self.load: (String path) -> Credentials?
+    def self.delete: (String path) -> bool
+    def save: (String path) -> void
+    def to_auth: () -> HTTP::Auth
+  end
+
   module FileCopy
     FICLONE: Integer
     CLONE_UNSUPPORTED: Array[Class]
@@ -180,6 +217,25 @@ module DrTalon
       def install: (Installation installation, ?force: bool) -> Result
     end
 
+    class Fetcher
+      API: String
+      TIERS: Array[String]
+      OS_NAMES: Hash[String, String]
+      ZIP_MAGIC: String
+
+      def initialize: (?http: HTTP, ?downloads_dir: String, ?platform: String, ?api: String) -> void
+      def api_url: (String tier) -> String
+      def verify: (Credentials credentials, String tier) -> void
+      def fetch: (Credentials credentials, String tier) ?{ (Integer received, Integer? total) -> void } -> String
+    end
+
+    class ButlerFetcher
+      GAME: String
+
+      def initialize: (?platform: String, ?butler: String) -> void
+      def fetch: (String dir) -> String
+    end
+
     module GitIgnore
       BEGIN_MARKER: String
       END_MARKER: String
@@ -248,12 +304,6 @@ module DrTalon
     def self.declaration: (Symbol kind, String value, ?path: String?, ?ref: String?, ?as: String?) -> String
     def self.require_hint: (Project project, Dependency dependency) -> String?
 
-    class HTTP
-      MAX_REDIRECTS: Integer
-
-      def get: (String url) -> String
-    end
-
     class Git
       FULL_SHA: Regexp
 
@@ -268,7 +318,7 @@ module DrTalon
     end
 
     class Context < Data
-      attr_reader http: HTTP
+      attr_reader http: DrTalon::HTTP
       attr_reader git: Git
       attr_reader github_url: String
       attr_reader codeload_url: String
@@ -401,6 +451,9 @@ module DrTalon
       def import: (String path) -> void
       def list: () -> void
       def which: (?String? spec) -> void
+      def fetch: () -> void
+      def login: () -> void
+      def logout: () -> void
       def use: (?String? spec) -> void
       def current: () -> void
       def uninstall: (String spec) -> void
