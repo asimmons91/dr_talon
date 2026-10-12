@@ -1,5 +1,4 @@
 ## [Unreleased]
 
-## [0.1.0] - 2026-10-11
-
-- Initial release
+- `talon` executable with `version` (`-v`, `--version`)
+- `DrTalon::Paths` for XDG / macOS / Windows data, cache and config locations (`DR_TALON_HOME` override)

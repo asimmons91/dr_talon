@@ -1,4 +1,24 @@
 module DrTalon
   VERSION: String
-  # See the writing guide of rbs: https://github.com/ruby/rbs#guides
+
+  class Error < StandardError
+  end
+
+  class Paths
+    APP_NAME: String
+
+    def initialize: (?env: Hash[String, String], ?host_os: String, ?home: String) -> void
+    def data_dir: () -> String
+    def cache_dir: () -> String
+    def config_dir: () -> String
+    def engines_dir: () -> String
+    def downloads_dir: () -> String
+    def config_file: () -> String
+    def credentials_file: () -> String
+  end
+
+  class CLI < Thor
+    def self.exit_on_failure?: () -> bool
+    def version: () -> void
+  end
 end
